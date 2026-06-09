@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Kanban.Domain\Kanban.Domain.csproj" />
+    <ProjectReference Include="..\Kanban.ServiceDefaults\Kanban.ServiceDefaults.csproj" />
+  </ItemGroup>
+
+</Project>

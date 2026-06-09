@@ -1,0 +1,11 @@
+@Kanban.Api_HostAddress = http://localhost:5018
+
+GET {{Kanban.Api_HostAddress}}/openapi/v1.json
+Accept: application/json
+
+###
+
+GET {{Kanban.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
