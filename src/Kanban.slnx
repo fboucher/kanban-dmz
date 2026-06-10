@@ -1,5 +1,4 @@
 <Solution>
-  <Project Path="Kanban.Api/Kanban.Api.csproj" />
   <Project Path="Kanban.AppHost/Kanban.AppHost.csproj" />
   <Project Path="Kanban.Domain/Kanban.Domain.csproj" />
   <Project Path="Kanban.ServiceDefaults/Kanban.ServiceDefaults.csproj" />

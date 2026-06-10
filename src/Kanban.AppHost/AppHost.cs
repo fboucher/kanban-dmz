@@ -1,17 +1,15 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
 var postgres = builder.AddPostgres("postgres")
-    .WithDataVolume();
+    .WithDataVolume()
+    .WithBindMount(Path.GetFullPath(Path.Combine("..", "..", "db")), "/docker-entrypoint-initdb.d")
+    .WithEnvironment("POSTGRES_DB", "kanban");
 
 var postgresDb = postgres.AddDatabase("kanban");
 
-var dabConfigPath = Path.GetFullPath(Path.Combine("..", "..", "dab"));
+var dabConfigFile = Path.GetFullPath(Path.Combine("..", "..", "dab", "dab-config.json"));
 
-var dab = builder.AddContainer("dab", "mcr.microsoft.com/azure-databases/data-api-builder:latest")
-    .WithBindMount(dabConfigPath, "/App/configs")
-    .WithEnvironment("DAB_CONFIG", "/App/configs/dab-config.json")
-    .WithEnvironment("ASPNETCORE_URLS", "http://0.0.0.0:5000")
-    .WithHttpEndpoint(targetPort: 5000, name: "http")
+var dab = builder.AddDataAPIBuilder("dab", dabConfigFile)
     .WithReference(postgresDb);
 
 var keycloakConfigPath = Path.GetFullPath(Path.Combine("..", "..", "keycloak"));
@@ -24,12 +22,8 @@ var keycloak = builder.AddContainer("keycloak", "quay.io/keycloak/keycloak:lates
     .WithHttpEndpoint(targetPort: 8080, name: "http")
     .WithBindMount(keycloakConfigPath, "/opt/keycloak/data/import");
 
-var api = builder.AddProject<Projects.Kanban_Api>("api")
-    .WithEnvironment("Dab__BaseUrl", dab.GetEndpoint("http"))
-    .WithReference(postgresDb);
-
 var web = builder.AddProject<Projects.Kanban_Web>("web")
-    .WithEnvironment("Api__BaseUrl", api.GetEndpoint("http"))
+    .WithEnvironment("Api__BaseUrl", dab.GetEndpoint("http"))
     .WithEnvironment("Keycloak__Authority", keycloak.GetEndpoint("http"))
     .WithExternalHttpEndpoints();
 

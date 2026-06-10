@@ -65,7 +65,7 @@
             {
               "action": "read",
               "fields": {
-                "include": ["Id", "BoardId", "ColumnId", "Title", "PublicDescription", "CategoryId", "CreatedAt", "CreatedBy", "AssignedTo"]
+                "include": ["Id", "BoardId", "ColumnId", "Title", "PublicDescription", "CategoryId", "CreatedAt", "CreatedBy", "AssignedTo", "IsPublic"]
               },
               "policy": {
                 "database": "@item.IsPublic eq true"
