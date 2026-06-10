@@ -1,11 +1,86 @@
 @inherits LayoutComponentBase
 @using Microsoft.FluentUI.AspNetCore.Components
-
-<FluentDesignTheme StorageName="theme" />
+@using Microsoft.AspNetCore.Components.Authorization
+@inject NavigationManager Navigation
+@inject IThemeService ThemeService
 <FluentLayout>
+    <div class="top-bar">
+        <div class="brand">
+            <span class="brand-icon">
+                <FluentIcon Value="@(new Icons.Filled.Size24.Board())" Color="Color.Primary" />
+            </span>
+            <span class="brand-name">Kanban DMZ</span>
+        </div>
+        <div class="auth-section">
+            <FluentButton Appearance="ButtonAppearance.Subtle" 
+                          IconStart="@(_mode == ThemeMode.Dark ? new Icons.Regular.Size16.WeatherSunny() : new Icons.Regular.Size16.WeatherMoon())"
+                          OnClick="ToggleTheme" 
+                          Title="Toggle Light/Dark Theme" />
+            <AuthorizeView>
+                <Authorized>
+                    <div class="user-info">
+                        <span class="user-avatar" title="@(context.User.Identity?.Name ?? "User")">
+                            @GetInitials(context.User.Identity?.Name)
+                        </span>
+                        <span class="user-name">@(context.User.Identity?.Name ?? "Authenticated User")</span>
+                    </div>
+                    <FluentButton Appearance="ButtonAppearance.Subtle" OnClick="Logout" IconEnd="@(new Icons.Regular.Size16.ArrowExit())">
+                        Log out
+                    </FluentButton>
+                </Authorized>
+                <NotAuthorized>
+                    <FluentButton Appearance="ButtonAppearance.Primary" OnClick="Login" IconStart="@(new Icons.Regular.Size16.ArrowEnter())">
+                        Log in
+                    </FluentButton>
+                </NotAuthorized>
+            </AuthorizeView>
+        </div>
+    </div>
+    
     <FluentLayoutItem Area="@LayoutArea.Content" Padding="@Padding.All3">
         @Body
     </FluentLayoutItem>
 </FluentLayout>
 
 <FluentProviders />
+
+@code {
+    private ThemeMode _mode = ThemeMode.System;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var isDark = await ThemeService.IsDarkModeAsync();
+            _mode = isDark ? ThemeMode.Dark : ThemeMode.Light;
+            StateHasChanged();
+        }
+    }
+
+    private async Task ToggleTheme()
+    {
+        var isDark = await ThemeService.SwitchThemeAsync();
+        _mode = isDark ? ThemeMode.Dark : ThemeMode.Light;
+    }
+
+    private void Login()
+    {
+        Navigation.NavigateTo("/login", forceLoad: true);
+    }
+
+    private void Logout()
+    {
+        Navigation.NavigateTo("/logout", forceLoad: true);
+    }
+
+    private string GetInitials(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return "U";
+        var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 0) return "U";
+        if (parts.Length == 1) return parts[0][0].ToString().ToUpperInvariant();
+        return (parts[0][0].ToString() + parts[^1][0].ToString()).ToUpperInvariant();
+    }
+}
+
+
