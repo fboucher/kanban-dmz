@@ -14,10 +14,13 @@ var dab = builder.AddDataAPIBuilder("dab", dabConfigFile)
 
 var keycloakConfigPath = Path.GetFullPath(Path.Combine("..", "..", "keycloak"));
 
+var keycloakAdmin = builder.AddParameter("keycloak-admin");
+var keycloakAdminPassword = builder.AddParameter("keycloak-admin-password", secret: true);
+
 var keycloak = builder.AddContainer("keycloak", "quay.io/keycloak/keycloak:latest")
     .WithArgs(["start-dev", "--import-realm"])
-    .WithEnvironment("KEYCLOAK_ADMIN", "admin")
-    .WithEnvironment("KEYCLOAK_ADMIN_PASSWORD", "admin")
+    .WithEnvironment("KEYCLOAK_ADMIN", keycloakAdmin)
+    .WithEnvironment("KEYCLOAK_ADMIN_PASSWORD", keycloakAdminPassword)
     .WithEnvironment("KC_HTTP_RELATIVE_PATH", "/auth")
     .WithHttpEndpoint(targetPort: 8080, name: "http")
     .WithBindMount(keycloakConfigPath, "/opt/keycloak/data/import");
