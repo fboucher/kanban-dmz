@@ -1,6 +1,32 @@
-﻿<Router AppAssembly="typeof(Program).Assembly" NotFoundPage="typeof(Pages.NotFound)">
+@using Microsoft.AspNetCore.Components.Authorization
+@using KanbanDmz.Web.Services
+@inject UserTokenProvider TokenProvider
+
+<Router AppAssembly="typeof(Program).Assembly" NotFoundPage="typeof(Pages.NotFound)">
     <Found Context="routeData">
-        <RouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)" />
+        <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)">
+            <NotAuthorized>
+                <div class="state-container">
+                    <FluentIcon Value="@(new Icons.Regular.Size24.LockClosed())" Color="Color.Error" />
+                    <FluentLabel Typo="Typography.Body">You are not authorized to view this page.</FluentLabel>
+                    <FluentButton Href="/login" Appearance="ButtonAppearance.Primary">Log In</FluentButton>
+                </div>
+            </NotAuthorized>
+        </AuthorizeRouteView>
         <FocusOnNavigate RouteData="routeData" Selector="h1" />
     </Found>
 </Router>
+
+@code {
+    [Parameter]
+    public string? AccessToken { get; set; }
+
+    protected override void OnInitialized()
+    {
+        if (!string.IsNullOrEmpty(AccessToken))
+        {
+            TokenProvider.AccessToken = AccessToken;
+        }
+    }
+}
+

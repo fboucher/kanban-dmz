@@ -1,11 +1,53 @@
 @inherits LayoutComponentBase
 @using Microsoft.FluentUI.AspNetCore.Components
+@using Microsoft.AspNetCore.Components.Authorization
 
 <FluentDesignTheme StorageName="theme" />
 <FluentLayout>
+    <div class="top-bar">
+        <div class="brand">
+            <span class="brand-icon">
+                <FluentIcon Value="@(new Icons.Filled.Size24.Board())" Color="Color.Primary" />
+            </span>
+            <span class="brand-name">Kanban DMZ</span>
+        </div>
+        <div class="auth-section">
+            <AuthorizeView>
+                <Authorized>
+                    <div class="user-info">
+                        <span class="user-avatar" title="@(context.User.Identity?.Name ?? "User")">
+                            @GetInitials(context.User.Identity?.Name)
+                        </span>
+                        <span class="user-name">@(context.User.Identity?.Name ?? "Authenticated User")</span>
+                    </div>
+                    <FluentButton Appearance="ButtonAppearance.Subtle" Href="/logout" IconEnd="@(new Icons.Regular.Size16.ArrowExit())">
+                        Log out
+                    </FluentButton>
+                </Authorized>
+                <NotAuthorized>
+                    <FluentButton Appearance="ButtonAppearance.Primary" Href="/login" IconStart="@(new Icons.Regular.Size16.ArrowEnter())">
+                        Log in
+                    </FluentButton>
+                </NotAuthorized>
+            </AuthorizeView>
+        </div>
+    </div>
+    
     <FluentLayoutItem Area="@LayoutArea.Content" Padding="@Padding.All3">
         @Body
     </FluentLayoutItem>
 </FluentLayout>
 
 <FluentProviders />
+
+@code {
+    private string GetInitials(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return "U";
+        var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 0) return "U";
+        if (parts.Length == 1) return parts[0][0].ToString().ToUpperInvariant();
+        return (parts[0][0].ToString() + parts[^1][0].ToString()).ToUpperInvariant();
+    }
+}
+
