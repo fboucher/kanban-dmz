@@ -1,6 +1,6 @@
 <Solution>
-  <Project Path="Kanban.AppHost/Kanban.AppHost.csproj" />
-  <Project Path="Kanban.Domain/Kanban.Domain.csproj" />
-  <Project Path="Kanban.ServiceDefaults/Kanban.ServiceDefaults.csproj" />
-  <Project Path="Kanban.Web/Kanban.Web.csproj" />
+  <Project Path="KanbanDmz.AppHost/KanbanDmz.AppHost.csproj" />
+  <Project Path="KanbanDmz.Domain/KanbanDmz.Domain.csproj" />
+  <Project Path="KanbanDmz.ServiceDefaults/KanbanDmz.ServiceDefaults.csproj" />
+  <Project Path="KanbanDmz.Web/KanbanDmz.Web.csproj" />
 </Solution>

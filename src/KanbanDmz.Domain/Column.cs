@@ -1,4 +1,4 @@
-namespace Kanban.Domain;
+namespace KanbanDmz.Domain;
 
 public class Column
 {

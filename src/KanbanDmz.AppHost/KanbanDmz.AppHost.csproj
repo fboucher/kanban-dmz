@@ -14,7 +14,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Kanban.Web\Kanban.Web.csproj" />
+    <ProjectReference Include="..\KanbanDmz.Web\KanbanDmz.Web.csproj" />
   </ItemGroup>
 
 </Project>

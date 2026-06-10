@@ -1,4 +1,4 @@
-using Kanban.Web.Components;
+using KanbanDmz.Web.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
 
 var builder = WebApplication.CreateBuilder(args);
