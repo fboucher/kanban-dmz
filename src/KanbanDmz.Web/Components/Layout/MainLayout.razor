@@ -1,8 +1,9 @@
 @inherits LayoutComponentBase
 @using Microsoft.FluentUI.AspNetCore.Components
 @using Microsoft.AspNetCore.Components.Authorization
+@inject NavigationManager Navigation
 
-<FluentDesignTheme StorageName="theme" />
+<FluentDesignTheme StorageName="theme" Mode="@_mode" />
 <FluentLayout>
     <div class="top-bar">
         <div class="brand">
@@ -12,6 +13,10 @@
             <span class="brand-name">Kanban DMZ</span>
         </div>
         <div class="auth-section">
+            <FluentButton Appearance="ButtonAppearance.Subtle" 
+                          IconStart="@(_mode == ThemeMode.Dark ? new Icons.Regular.Size16.WeatherSunny() : new Icons.Regular.Size16.WeatherMoon())"
+                          OnClick="ToggleTheme" 
+                          Title="Toggle Light/Dark Theme" />
             <AuthorizeView>
                 <Authorized>
                     <div class="user-info">
@@ -20,12 +25,12 @@
                         </span>
                         <span class="user-name">@(context.User.Identity?.Name ?? "Authenticated User")</span>
                     </div>
-                    <FluentButton Appearance="ButtonAppearance.Subtle" Href="/logout" IconEnd="@(new Icons.Regular.Size16.ArrowExit())">
+                    <FluentButton Appearance="ButtonAppearance.Subtle" OnClick="Logout" IconEnd="@(new Icons.Regular.Size16.ArrowExit())">
                         Log out
                     </FluentButton>
                 </Authorized>
                 <NotAuthorized>
-                    <FluentButton Appearance="ButtonAppearance.Primary" Href="/login" IconStart="@(new Icons.Regular.Size16.ArrowEnter())">
+                    <FluentButton Appearance="ButtonAppearance.Primary" OnClick="Login" IconStart="@(new Icons.Regular.Size16.ArrowEnter())">
                         Log in
                     </FluentButton>
                 </NotAuthorized>
@@ -41,6 +46,24 @@
 <FluentProviders />
 
 @code {
+    private ThemeMode _mode = ThemeMode.System;
+
+
+    private void ToggleTheme()
+    {
+        _mode = _mode == ThemeMode.Dark ? ThemeMode.Light : ThemeMode.Dark;
+    }
+
+    private void Login()
+    {
+        Navigation.NavigateTo("/login", forceLoad: true);
+    }
+
+    private void Logout()
+    {
+        Navigation.NavigateTo("/logout", forceLoad: true);
+    }
+
     private string GetInitials(string? name)
     {
         if (string.IsNullOrWhiteSpace(name)) return "U";
@@ -50,4 +73,5 @@
         return (parts[0][0].ToString() + parts[^1][0].ToString()).ToUpperInvariant();
     }
 }
+
 

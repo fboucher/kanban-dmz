@@ -103,7 +103,8 @@ main {
     justify-content: space-between;
     align-items: center;
     padding: 0.75rem 2rem;
-    background: rgba(255, 255, 255, 0.75);
+    background: var(--neutral-fill-layer-rest);
+    color: var(--neutral-foreground-rest);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     border-bottom: 1px solid var(--neutral-stroke-rest);
