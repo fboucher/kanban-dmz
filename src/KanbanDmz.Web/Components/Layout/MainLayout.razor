@@ -2,8 +2,7 @@
 @using Microsoft.FluentUI.AspNetCore.Components
 @using Microsoft.AspNetCore.Components.Authorization
 @inject NavigationManager Navigation
-
-<FluentDesignTheme StorageName="theme" Mode="@_mode" />
+@inject IThemeService ThemeService
 <FluentLayout>
     <div class="top-bar">
         <div class="brand">
@@ -48,10 +47,20 @@
 @code {
     private ThemeMode _mode = ThemeMode.System;
 
-
-    private void ToggleTheme()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        _mode = _mode == ThemeMode.Dark ? ThemeMode.Light : ThemeMode.Dark;
+        if (firstRender)
+        {
+            var isDark = await ThemeService.IsDarkModeAsync();
+            _mode = isDark ? ThemeMode.Dark : ThemeMode.Light;
+            StateHasChanged();
+        }
+    }
+
+    private async Task ToggleTheme()
+    {
+        var isDark = await ThemeService.SwitchThemeAsync();
+        _mode = isDark ? ThemeMode.Dark : ThemeMode.Light;
     }
 
     private void Login()
