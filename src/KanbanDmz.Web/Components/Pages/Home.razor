@@ -1,9 +1,163 @@
 @page "/"
 @using Microsoft.FluentUI.AspNetCore.Components
+@using KanbanDmz.Domain.DTOs
+@using KanbanDmz.Web.Services
+@inject KanbanService KanbanService
 
 <PageTitle>Kanban Board</PageTitle>
 
-<FluentStack Orientation="Orientation.Vertical" Style="padding: 2rem;">
-    <FluentLabel Typo="Typography.PageTitle">Kanban Board</FluentLabel>
-    <FluentLabel Typo="Typography.Body">Your kanban board will appear here.</FluentLabel>
-</FluentStack>
+<div class="board-container">
+    @if (_loading)
+    {
+        <div class="state-container">
+            <FluentSpinner />
+            <FluentLabel Typo="Typography.Body">Loading Kanban board...</FluentLabel>
+        </div>
+    }
+    else if (_errorMessage != null)
+    {
+        <div class="state-container">
+            <FluentIcon Value="@(new Icons.Regular.Size24.ErrorCircle())" Color="Color.Error" />
+            <FluentLabel Typo="Typography.Body" Class="error-text">@_errorMessage</FluentLabel>
+            <FluentButton Appearance="ButtonAppearance.Primary" OnClick="ReloadBoard">Retry</FluentButton>
+        </div>
+    }
+    else if (_board != null)
+    {
+        <div class="board-header">
+            <div class="board-title-group">
+                <h1 class="board-title">@_board.Name Board</h1>
+                <FluentBadge Appearance="BadgeAppearance.Outline">
+                    @(_board.IsPublic ? "Public View" : "Private View")
+                </FluentBadge>
+            </div>
+            <div>
+                <FluentDesignTheme StorageName="theme" />
+            </div>
+        </div>
+
+        <div class="board-canvas">
+            @foreach (var col in _board.Columns)
+            {
+                <div class="board-column">
+                    <div class="column-header">
+                        <h3 class="column-title">@col.Name</h3>
+                        <span class="column-count-badge">@col.Cards.Count</span>
+                    </div>
+
+                    <div class="column-cards">
+                        @foreach (var card in col.Cards)
+                        {
+                            <FluentCard Class="kanban-card">
+                                <h4 class="card-title">@card.Title</h4>
+
+                                @if (!string.IsNullOrWhiteSpace(card.PublicDescription))
+                                {
+                                    <p class="card-description">@card.PublicDescription</p>
+                                }
+                                else
+                                {
+                                    <p class="card-description card-description-placeholder">No description</p>
+                                }
+
+                                <div class="card-meta-row">
+                                    <span class="category-badge @GetCategoryClass(card.CategoryName)">@card.CategoryName</span>
+                                    
+                                    @if (card.Tags != null && card.Tags.Any())
+                                    {
+                                        <div class="tags-list">
+                                            @foreach (var tag in card.Tags)
+                                            {
+                                                <span class="tag-pill">#@tag</span>
+                                            }
+                                        </div>
+                                    }
+                                </div>
+
+                                <div class="card-footer">
+                                    @if (!string.IsNullOrWhiteSpace(card.AssignedTo))
+                                    {
+                                        <div class="assignee-group">
+                                            <span class="assignee-avatar" title="Assigned to @card.AssignedTo">@GetInitials(card.AssignedTo)</span>
+                                            <span>@card.AssignedTo</span>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="assignee-group">
+                                            <span class="assignee-unassigned">Unassigned</span>
+                                        </div>
+                                    }
+
+                                    <span class="card-public-indicator" title="Visible to everyone">
+                                        <FluentIcon Value="@(new Icons.Regular.Size16.Eye())" Color="Color.Default" />
+                                    </span>
+                                </div>
+                            </FluentCard>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private BoardDetailDto? _board;
+    private bool _loading = true;
+    private string? _errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadBoardAsync();
+    }
+
+    private async Task LoadBoardAsync()
+    {
+        _loading = true;
+        _errorMessage = null;
+
+        try
+        {
+            var defaultBoardId = new Guid("00000000-0000-0000-0000-000000000001");
+            _board = await KanbanService.GetBoardDetailAsync(defaultBoardId);
+            if (_board == null)
+            {
+                _errorMessage = "Unable to load the Kanban board. The board was not found.";
+            }
+        }
+        catch (Exception)
+        {
+            _errorMessage = "Unable to load the Kanban board. Please make sure the backend services are running.";
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task ReloadBoard()
+    {
+        await LoadBoardAsync();
+    }
+
+    private string GetCategoryClass(string categoryName)
+    {
+        return categoryName.ToLowerInvariant() switch
+        {
+            "bug" => "badge-bug",
+            "feature" => "badge-feature",
+            "chore" => "badge-chore",
+            _ => "badge-unknown"
+        };
+    }
+
+    private string GetInitials(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return "?";
+        var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 1) return parts[0][0].ToString().ToUpperInvariant();
+        return (parts[0][0].ToString() + parts[^1][0].ToString()).ToUpperInvariant();
+    }
+}
+

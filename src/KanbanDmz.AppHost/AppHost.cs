@@ -26,8 +26,12 @@ var keycloak = builder.AddContainer("keycloak", "quay.io/keycloak/keycloak:lates
     .WithBindMount(keycloakConfigPath, "/opt/keycloak/data/import");
 
 var web = builder.AddProject<Projects.KanbanDmz_Web>("web")
+    .WithReference(dab)
+    .WithReference(keycloak.GetEndpoint("http"))
     .WithEnvironment("Api__BaseUrl", dab.GetEndpoint("http"))
     .WithEnvironment("Keycloak__Authority", keycloak.GetEndpoint("http"))
+    .WaitFor(dab)
+    .WaitFor(keycloak)
     .WithExternalHttpEndpoints();
 
 builder.Build().Run();
