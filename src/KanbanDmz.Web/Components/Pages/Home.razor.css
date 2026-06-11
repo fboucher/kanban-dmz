@@ -1,253 +1,125 @@
-/* Kanban Board Layout */
-.board-container {
+.landing-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 3rem 1.5rem;
     display: flex;
     flex-direction: column;
-    height: calc(100vh - 4rem);
-    padding: 1.5rem;
-    box-sizing: border-box;
+    gap: 4rem;
 }
 
-.board-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 2rem;
-}
-
-.board-title-group {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-}
-
-.board-title {
-    font-size: 2.25rem;
-    font-weight: 800;
-    letter-spacing: -0.025em;
-    margin: 0;
-    background: linear-gradient(135deg, var(--accent-fill-rest) 0%, #a855f7 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-}
-
-/* Kanban Board Canvas */
-.board-canvas {
-    display: flex;
-    gap: 1.25rem;
-    overflow-x: auto;
-    flex: 1;
-    align-items: flex-start;
-    padding-bottom: 1rem;
-}
-
-/* Column Design */
-.board-column {
-    display: flex;
-    flex-direction: column;
-    width: 300px;
-    min-width: 300px;
-    max-width: 300px;
-    background-color: var(--neutral-fill-card-rest);
-    border: 1px solid var(--neutral-stroke-rest);
+.hero-section {
+    text-align: center;
+    padding: 3rem 1rem;
     border-radius: 16px;
-    padding: 1rem;
-    box-sizing: border-box;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-    max-height: 100%;
-}
-
-.column-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1.25rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 1px dashed var(--neutral-stroke-divider-rest);
-}
-
-.column-title {
-    font-size: 1.1rem;
-    font-weight: 700;
-    color: var(--neutral-foreground-rest);
-    margin: 0;
-}
-
-.column-count-badge {
-    background-color: var(--neutral-fill-secondary-rest);
-    color: var(--neutral-foreground-rest);
-    padding: 0.2rem 0.6rem;
-    border-radius: 9999px;
-    font-size: 0.75rem;
-    font-weight: 600;
-}
-
-.column-cards {
-    display: flex;
-    flex-direction: column;
-    gap: 0.85rem;
-    overflow-y: auto;
-    flex: 1;
-    min-height: 150px;
-    padding-right: 0.25rem;
-}
-
-/* Scrollbar styling for cards list */
-.column-cards::-webkit-scrollbar {
-    width: 6px;
-}
-.column-cards::-webkit-scrollbar-track {
-    background: transparent;
-}
-.column-cards::-webkit-scrollbar-thumb {
-    background: var(--neutral-stroke-rest);
-    border-radius: 3px;
-}
-
-/* Premium Card Design */
-.kanban-card {
-    cursor: grab;
-    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.25s ease;
-    border: 1px solid var(--neutral-stroke-card-rest);
-    border-radius: 12px;
-    background-color: var(--neutral-fill-layer-card-rest);
-    padding: 1rem;
-}
-
-.kanban-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
-    border-color: var(--accent-fill-hover);
-}
-
-.card-title {
-    font-size: 0.95rem;
-    font-weight: 600;
-    color: var(--neutral-foreground-rest);
-    margin-top: 0;
-    margin-bottom: 0.5rem;
-    line-height: 1.4;
-}
-
-.card-description {
-    font-size: 0.825rem;
-    color: var(--neutral-foreground-hint);
-    margin-bottom: 1rem;
-    line-height: 1.5;
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-}
-
-.card-description-placeholder {
-    font-style: italic;
-    color: var(--neutral-foreground-disabled);
-}
-
-/* Card Metadata / Badges */
-.card-meta-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    align-items: center;
-    margin-bottom: 0.75rem;
-}
-
-.category-badge {
-    font-size: 0.7rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    padding: 0.15rem 0.5rem;
-    border-radius: 6px;
-    color: #ffffff;
-    letter-spacing: 0.05em;
-}
-
-.badge-bug {
-    background-color: #ef4444; /* bug red */
-}
-
-.badge-feature {
-    background-color: #3b82f6; /* feature blue */
-}
-
-.badge-chore {
-    background-color: #f59e0b; /* chore amber */
-}
-
-.badge-unknown {
-    background-color: #6b7280; /* gray fallback */
-}
-
-/* Tag Pills */
-.tags-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.35rem;
-}
-
-.tag-pill {
-    font-size: 0.725rem;
-    background-color: var(--neutral-fill-input-rest);
+    background: var(--neutral-fill-card-rest);
     border: 1px solid var(--neutral-stroke-rest);
-    color: var(--neutral-foreground-rest);
-    padding: 0.1rem 0.45rem;
-    border-radius: 6px;
-    font-weight: 500;
 }
 
-/* Card Footer */
-.card-footer {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: 0.75rem;
-    padding-top: 0.5rem;
-    border-top: 1px solid var(--neutral-stroke-divider-rest);
-    font-size: 0.75rem;
+.hero-stack {
+    max-width: 800px;
+    margin: 0 auto;
 }
 
-.assignee-group {
-    display: flex;
-    align-items: center;
-    gap: 0.35rem;
-    color: var(--neutral-foreground-hint);
-}
-
-.assignee-avatar {
-    display: flex;
+.hero-icon-wrapper {
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 20px;
-    height: 20px;
+    padding: 1rem;
     border-radius: 50%;
     background-color: var(--accent-fill-rest);
     color: #ffffff;
-    font-size: 0.65rem;
-    font-weight: 700;
+    box-shadow: 0 8px 16px rgba(0, 120, 212, 0.25);
 }
 
-.assignee-unassigned {
-    font-style: italic;
-    color: var(--neutral-foreground-disabled);
+.hero-title {
+    font-size: 2.75rem;
+    font-weight: 800;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+    margin: 0;
+    color: var(--neutral-foreground-rest);
 }
 
-.card-public-indicator {
-    color: var(--neutral-foreground-disabled);
+.hero-subtitle {
+    font-size: 1.15rem;
+    line-height: 1.6;
+    color: var(--neutral-foreground-hint);
+    margin: 0;
 }
 
-/* Loading & Error States */
-.state-container {
+.hero-actions {
+    margin-top: 1rem;
+}
+
+.cta-primary, .cta-secondary {
+    min-height: 40px;
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+
+/* Features Grid */
+.features-section {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 60vh;
-    gap: 1.5rem;
-    text-align: center;
+    gap: 2rem;
 }
 
-.error-text {
-    color: #ef4444;
-    font-weight: 600;
+.section-title {
+    font-size: 1.75rem;
+    font-weight: 700;
+    text-align: center;
+    margin: 0;
+    color: var(--neutral-foreground-rest);
+}
+
+.features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+}
+
+.feature-card {
+    padding: 1.5rem;
+    border-radius: 12px;
+    border: 1px solid var(--neutral-stroke-card-rest);
+    background-color: var(--neutral-fill-layer-card-rest);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.feature-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.05);
+}
+
+.feature-icon {
+    display: inline-flex;
+    padding: 0.5rem;
+    border-radius: 8px;
+    background-color: rgba(0, 120, 212, 0.1);
+    margin-bottom: 1rem;
+}
+
+.feature-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-top: 0;
+    margin-bottom: 0.5rem;
+    color: var(--neutral-foreground-rest);
+}
+
+.feature-desc {
+    font-size: 0.875rem;
+    line-height: 1.5;
+    color: var(--neutral-foreground-hint);
+    margin: 0;
+}
+
+@media (max-width: 600px) {
+    .hero-title {
+        font-size: 2rem;
+    }
+    .landing-container {
+        padding: 1.5rem 1rem;
+        gap: 2.5rem;
+    }
 }
