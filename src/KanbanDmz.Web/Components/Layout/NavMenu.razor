@@ -1,5 +1,7 @@
-<nav class="nav flex-column">
-    <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-        Home
-    </NavLink>
-</nav>
+@rendermode InteractiveServer
+
+<FluentNav Width="100%">
+    <FluentNavItem Href="/" Match="NavLinkMatch.All" IconRest="@(new Icons.Regular.Size20.Board())" IconActive="@(new Icons.Filled.Size20.Board())">
+        Kanban Board
+    </FluentNavItem>
+</FluentNav>

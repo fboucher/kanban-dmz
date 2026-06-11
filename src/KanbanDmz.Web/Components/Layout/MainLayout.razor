@@ -3,42 +3,71 @@
 @using Microsoft.AspNetCore.Components.Authorization
 @inject NavigationManager Navigation
 @inject IThemeService ThemeService
+
 <FluentLayout>
-    <div class="top-bar">
-        <div class="brand">
-            <span class="brand-icon">
-                <FluentIcon Value="@(new Icons.Filled.Size24.Board())" Color="Color.Primary" />
-            </span>
-            <span class="brand-name">Kanban DMZ</span>
-        </div>
-        <div class="auth-section">
-            <FluentButton Appearance="ButtonAppearance.Subtle" 
-                          IconStart="@(_mode == ThemeMode.Dark ? new Icons.Regular.Size16.WeatherSunny() : new Icons.Regular.Size16.WeatherMoon())"
-                          OnClick="ToggleTheme" 
-                          Title="Toggle Light/Dark Theme" />
-            <AuthorizeView>
-                <Authorized>
-                    <div class="user-info">
-                        <span class="user-avatar" title="@(context.User.Identity?.Name ?? "User")">
-                            @GetInitials(context.User.Identity?.Name)
-                        </span>
-                        <span class="user-name">@(context.User.Identity?.Name ?? "Authenticated User")</span>
-                    </div>
-                    <FluentButton Appearance="ButtonAppearance.Subtle" OnClick="Logout" IconEnd="@(new Icons.Regular.Size16.ArrowExit())">
-                        Log out
-                    </FluentButton>
-                </Authorized>
-                <NotAuthorized>
-                    <FluentButton Appearance="ButtonAppearance.Primary" OnClick="Login" IconStart="@(new Icons.Regular.Size16.ArrowEnter())">
-                        Log in
-                    </FluentButton>
-                </NotAuthorized>
-            </AuthorizeView>
-        </div>
-    </div>
-    
+    <FluentLayoutItem Area="@LayoutArea.Header">
+        <FluentStack VerticalAlignment="VerticalAlignment.Center">
+            <FluentLayoutHamburger />
+            
+            <div class="brand">
+                <span class="brand-icon">
+                    <FluentIcon Value="@(new Icons.Filled.Size24.Board())" Color="Color.Primary" />
+                </span>
+                <span class="brand-name">Kanban DMZ</span>
+            </div>
+            
+            <FluentSpacer />
+            
+            <div class="auth-section">
+                <FluentButton Appearance="ButtonAppearance.Subtle" 
+                               IconStart="@(_mode == ThemeMode.Dark ? new Icons.Regular.Size16.WeatherSunny() : new Icons.Regular.Size16.WeatherMoon())"
+                               OnClick="ToggleTheme" 
+                               Title="Toggle Light/Dark Theme" />
+                <AuthorizeView>
+                    <Authorized>
+                        <div class="user-info">
+                            <span class="user-avatar" title="@(context.User.Identity?.Name ?? "User")">
+                                @GetInitials(context.User.Identity?.Name)
+                            </span>
+                            <span class="user-name">@(context.User.Identity?.Name ?? "Authenticated User")</span>
+                        </div>
+                        <FluentButton Appearance="ButtonAppearance.Subtle" OnClick="Logout" IconEnd="@(new Icons.Regular.Size16.ArrowExit())">
+                            Log out
+                        </FluentButton>
+                    </Authorized>
+                    <NotAuthorized>
+                        <FluentButton Appearance="ButtonAppearance.Primary" OnClick="Login" IconStart="@(new Icons.Regular.Size16.ArrowEnter())">
+                            Log in
+                        </FluentButton>
+                    </NotAuthorized>
+                </AuthorizeView>
+            </div>
+        </FluentStack>
+    </FluentLayoutItem>
+
+    <FluentLayoutItem Area="@LayoutArea.Navigation" Width="250px">
+        <NavMenu />
+    </FluentLayoutItem>
+
     <FluentLayoutItem Area="@LayoutArea.Content" Padding="@Padding.All3">
         @Body
+    </FluentLayoutItem>
+
+    <FluentLayoutItem Area="@LayoutArea.Footer">
+        <FluentStack VerticalAlignment="VerticalAlignment.Center" Width="100%">
+            <span>Kanban DMZ &copy; 2026</span>
+            <FluentSpacer />
+            <a href="https://github.com/fboucher/kanban-dmz" target="_blank" style="display: inline-flex; align-items: center; gap: 4px; text-decoration: none;">
+                <FluentIcon Value="@(new Icons.Regular.Size16.Link())" Color="Color.Default" />
+                GitHub Repository
+            </a>
+            <FluentSpacer Width="20" />
+            <a href="https://www.fluentui-blazor.net" target="_blank" style="text-decoration: none;">Documentation and demos</a>
+            <FluentSpacer Width="20" />
+            <a href="https://learn.microsoft.com/en-us/aspnet/core/blazor" target="_blank" style="text-decoration: none;">About Blazor</a>
+            <FluentSpacer />
+            <span class="version-label">v@(typeof(Program).Assembly.GetName().Version?.ToString(3) ?? "1.0.0")</span>
+        </FluentStack>
     </FluentLayoutItem>
 </FluentLayout>
 
@@ -82,5 +111,3 @@
         return (parts[0][0].ToString() + parts[^1][0].ToString()).ToUpperInvariant();
     }
 }
-
-
