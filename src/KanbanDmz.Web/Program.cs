@@ -59,6 +59,19 @@ if (!app.Environment.IsDevelopment())
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
 }
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
+
+app.Use(async (context, next) =>
+{
+    if (context.Request.Path.StartsWithSegments("/api"))
+    {
+        var statusCodePagesFeature = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IStatusCodePagesFeature>();
+        if (statusCodePagesFeature != null)
+        {
+            statusCodePagesFeature.Enabled = false;
+        }
+    }
+    await next(context);
+});
 app.UseAntiforgery();
 
 app.UseAuthentication();
@@ -85,6 +98,21 @@ app.MapGet("/logout", async (HttpContext context) =>
     });
 });
 
+app.MapPost("/api/cards/{id}/visibility", async (Guid id, HttpContext httpContext, KanbanService kanbanService) =>
+{
+    if (httpContext.User.Identity?.IsAuthenticated != true)
+    {
+        return Results.Unauthorized();
+    }
+
+    var success = await kanbanService.ToggleCardVisibilityAsync(id);
+    return success ? Results.Ok() : Results.NotFound();
+}).DisableAntiforgery();
+
 app.Run();
+
+public partial class Program { }
+
+
 
 

@@ -2,6 +2,7 @@
 @using Microsoft.FluentUI.AspNetCore.Components
 @using KanbanDmz.Domain.DTOs
 @using KanbanDmz.Web.Services
+@using Microsoft.AspNetCore.Components.Authorization
 @inject KanbanService KanbanService
 
 <PageTitle>Kanban Board</PageTitle>
@@ -57,6 +58,13 @@
                                     <p class="card-description card-description-placeholder">No description</p>
                                 }
 
+                                @if (_isAuthenticated && !string.IsNullOrWhiteSpace(card.PrivateDescription))
+                                {
+                                    <div class="card-private-description">
+                                        <span class="private-badge">Private</span>@card.PrivateDescription
+                                    </div>
+                                }
+
                                 <div class="card-meta-row">
                                     <span class="category-badge @GetCategoryClass(card.CategoryName)">@card.CategoryName</span>
                                     
@@ -86,9 +94,28 @@
                                         </div>
                                     }
 
-                                    <span class="card-public-indicator" title="Visible to everyone">
-                                        <FluentIcon Value="@(new Icons.Regular.Size16.Eye())" Color="Color.Default" />
-                                    </span>
+                                    @if (_isAuthenticated)
+                                    {
+                                        <FluentButton Appearance="ButtonAppearance.Subtle"
+                                                      OnClick="@(() => ToggleVisibility(card.Id))"
+                                                      Title="@(card.IsPublic ? "Make Private" : "Make Public")"
+                                                      aria-label="@(card.IsPublic ? "Make Private" : "Make Public")">
+                                            @if (card.IsPublic)
+                                            {
+                                                <FluentIcon Value="@(new Icons.Regular.Size16.Eye())" Color="Color.Default" />
+                                            }
+                                            else
+                                            {
+                                                <FluentIcon Value="@(new Icons.Regular.Size16.EyeOff())" Color="Color.Primary" />
+                                            }
+                                        </FluentButton>
+                                    }
+                                    else
+                                    {
+                                        <span class="card-public-indicator" title="Visible to everyone">
+                                            <FluentIcon Value="@(new Icons.Regular.Size16.Eye())" Color="Color.Default" />
+                                        </span>
+                                    }
                                 </div>
                             </FluentCard>
                         }
@@ -100,13 +127,42 @@
 </div>
 
 @code {
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthStateTask { get; set; }
+
     private BoardDetailDto? _board;
     private bool _loading = true;
     private string? _errorMessage;
+    private bool _isAuthenticated;
 
     protected override async Task OnInitializedAsync()
     {
+        if (AuthStateTask != null)
+        {
+            var authState = await AuthStateTask;
+            _isAuthenticated = authState.User.Identity?.IsAuthenticated ?? false;
+        }
         await LoadBoardAsync();
+    }
+
+    private async Task ToggleVisibility(Guid cardId)
+    {
+        try
+        {
+            var success = await KanbanService.ToggleCardVisibilityAsync(cardId);
+            if (success)
+            {
+                await LoadBoardAsync();
+            }
+            else
+            {
+                _errorMessage = "Failed to toggle card visibility.";
+            }
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"An error occurred: {ex.Message}";
+        }
     }
 
     private async Task LoadBoardAsync()

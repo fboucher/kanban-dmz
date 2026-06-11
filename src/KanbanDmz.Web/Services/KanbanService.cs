@@ -48,4 +48,38 @@ public class KanbanService
             throw;
         }
     }
+
+    public async Task<bool> ToggleCardVisibilityAsync(Guid cardId)
+    {
+        try
+        {
+            // First, fetch the card to get its current IsPublic state
+            var cardResponse = await _httpClient.GetFromJsonAsync<DabResponse<Card>>($"Card?$filter=id eq {cardId}");
+            if (cardResponse == null || cardResponse.Value.Count == 0)
+            {
+                _logger.LogWarning("Card with ID {CardId} not found in database via DAB.", cardId);
+                return false;
+            }
+            var card = cardResponse.Value[0];
+            var newIsPublic = !card.IsPublic;
+
+            // Now, send a PATCH request to toggle it in DAB
+            var response = await _httpClient.PatchAsJsonAsync($"Card/id/{cardId}", new { ispublic = newIsPublic });
+            if (response.IsSuccessStatusCode)
+            {
+                return true;
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                _logger.LogError("Error patching card visibility via DAB. Status: {Status}, Error: {Error}", response.StatusCode, error);
+                return false;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error toggling card visibility for Card ID: {CardId}", cardId);
+            throw;
+        }
+    }
 }

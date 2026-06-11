@@ -42,6 +42,7 @@ public static class BoardMapper
                         Id = card.Id,
                         Title = card.Title,
                         PublicDescription = card.PublicDescription,
+                        PrivateDescription = card.PrivateDescription,
                         CategoryName = categoriesMap.TryGetValue(card.CategoryId, out var catName) ? catName : "Uncategorized",
                         Tags = tagsGrouped.TryGetValue(card.Id, out var cardTags) ? cardTags : new List<string>(),
                         AssignedTo = card.AssignedTo,
