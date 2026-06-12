@@ -1,3 +1,4 @@
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using KanbanDmz.Domain;
 using KanbanDmz.Domain.DTOs;
@@ -7,16 +8,73 @@ namespace KanbanDmz.Web.Services;
 public class KanbanService
 {
     private readonly HttpClient _httpClient;
+    private readonly UserTokenProvider _tokenProvider;
     private readonly ILogger<KanbanService> _logger;
 
-    public KanbanService(HttpClient httpClient, ILogger<KanbanService> logger)
+    public KanbanService(HttpClient httpClient, ILogger<KanbanService> logger, UserTokenProvider? tokenProvider = null)
     {
         _httpClient = httpClient;
+        _tokenProvider = tokenProvider ?? new UserTokenProvider();
         _logger = logger;
+    }
+
+    private void EnsureAuthHeaders()
+    {
+        _httpClient.DefaultRequestHeaders.Remove("Authorization");
+        _httpClient.DefaultRequestHeaders.Remove("X-MS-CLIENT-PRINCIPAL");
+        _httpClient.DefaultRequestHeaders.Remove("X-MS-API-ROLE");
+
+        if (!string.IsNullOrEmpty(_tokenProvider.AccessToken))
+        {
+            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _tokenProvider.AccessToken);
+
+            try
+            {
+                var parts = _tokenProvider.AccessToken.Split('.');
+                if (parts.Length > 1)
+                {
+                    var payloadJson = Base64UrlDecode(parts[1]);
+                    using var doc = System.Text.Json.JsonDocument.Parse(payloadJson);
+                    var root = doc.RootElement;
+
+                    var userId = root.TryGetProperty("sub", out var subEl) ? subEl.GetString() : "unknown";
+                    var userDetails = root.TryGetProperty("preferred_username", out var nameEl) ? nameEl.GetString() : "unknown";
+
+                    var principalObj = new
+                    {
+                        identityProvider = "keycloak",
+                        userId = userId,
+                        userDetails = userDetails,
+                        userRoles = new[] { "anonymous", "authenticated" }
+                    };
+
+                    var principalJson = System.Text.Json.JsonSerializer.Serialize(principalObj);
+                    var principalBase64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(principalJson));
+                    _httpClient.DefaultRequestHeaders.Add("X-MS-CLIENT-PRINCIPAL", principalBase64);
+                    _httpClient.DefaultRequestHeaders.Add("X-MS-API-ROLE", "authenticated");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to decode access token in KanbanService.");
+            }
+        }
+    }
+
+    private static byte[] Base64UrlDecode(string input)
+    {
+        string base64 = input.Replace('-', '+').Replace('_', '/');
+        switch (base64.Length % 4)
+        {
+            case 2: base64 += "=="; break;
+            case 3: base64 += "="; break;
+        }
+        return Convert.FromBase64String(base64);
     }
 
     public async Task<BoardDetailDto?> GetBoardDetailAsync(Guid boardId)
     {
+        EnsureAuthHeaders();
         try
         {
             var boardResponse = await _httpClient.GetFromJsonAsync<DabResponse<Board>>($"Board?$filter=id eq {boardId}");
@@ -51,6 +109,7 @@ public class KanbanService
 
     public async Task<bool> ToggleCardVisibilityAsync(Guid cardId)
     {
+        EnsureAuthHeaders();
         try
         {
             // First, fetch the card to get its current IsPublic state
