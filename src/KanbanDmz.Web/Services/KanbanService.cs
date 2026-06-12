@@ -141,4 +141,157 @@ public class KanbanService
             throw;
         }
     }
+
+    public async Task<List<Category>> GetCategoriesAsync()
+    {
+        EnsureAuthHeaders();
+        try
+        {
+            var response = await _httpClient.GetFromJsonAsync<DabResponse<Category>>("Category");
+            return response?.Value ?? [];
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching categories from DAB.");
+            throw;
+        }
+    }
+
+    public async Task<Card?> CreateCardAsync(Card card)
+    {
+        EnsureAuthHeaders();
+        try
+        {
+            var payload = new
+            {
+                boardid = card.BoardId,
+                columnid = card.ColumnId,
+                title = card.Title,
+                publicdescription = card.PublicDescription,
+                privatedescription = card.PrivateDescription,
+                categoryid = card.CategoryId,
+                createdby = card.CreatedBy,
+                assignedto = card.AssignedTo,
+                ispublic = card.IsPublic
+            };
+            var response = await _httpClient.PostAsJsonAsync("Card", payload);
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<DabResponse<Card>>();
+                return result?.Value.FirstOrDefault();
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                _logger.LogError("Error creating card via DAB. Status: {Status}, Error: {Error}", response.StatusCode, error);
+                return null;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating card via DAB.");
+            throw;
+        }
+    }
+
+    public async Task<bool> UpdateCardAsync(Card card)
+    {
+        EnsureAuthHeaders();
+        try
+        {
+            var payload = new
+            {
+                columnid = card.ColumnId,
+                title = card.Title,
+                publicdescription = card.PublicDescription,
+                privatedescription = card.PrivateDescription,
+                categoryid = card.CategoryId,
+                assignedto = card.AssignedTo,
+                ispublic = card.IsPublic
+            };
+            var response = await _httpClient.PatchAsJsonAsync($"Card/id/{card.Id}", payload);
+            if (response.IsSuccessStatusCode)
+            {
+                return true;
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                _logger.LogError("Error updating card via DAB. Status: {Status}, Error: {Error}", response.StatusCode, error);
+                return false;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating card via DAB.");
+            throw;
+        }
+    }
+
+    public async Task<bool> DeleteCardAsync(Guid cardId)
+    {
+        EnsureAuthHeaders();
+        try
+        {
+            var response = await _httpClient.DeleteAsync($"Card/id/{cardId}");
+            if (response.IsSuccessStatusCode)
+            {
+                return true;
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                _logger.LogError("Error deleting card via DAB. Status: {Status}, Error: {Error}", response.StatusCode, error);
+                return false;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting card via DAB.");
+            throw;
+        }
+    }
+
+    public async Task UpdateCardTagsAsync(Guid cardId, List<string> newTags)
+    {
+        EnsureAuthHeaders();
+        try
+        {
+            var existingTagsResponse = await _httpClient.GetFromJsonAsync<DabResponse<CardTag>>($"CardTag?$filter=cardid eq {cardId}");
+            var existingTags = existingTagsResponse?.Value.Select(t => t.Tag).ToList() ?? [];
+
+            var tagsToDelete = existingTags.Where(t => !newTags.Contains(t, StringComparer.OrdinalIgnoreCase)).ToList();
+            var tagsToAdd = newTags.Where(t => !existingTags.Contains(t, StringComparer.OrdinalIgnoreCase)).ToList();
+
+            foreach (var tag in tagsToDelete)
+            {
+                var response = await _httpClient.DeleteAsync($"CardTag/cardid/{cardId}/tag/{tag}");
+                if (!response.IsSuccessStatusCode)
+                {
+                    var error = await response.Content.ReadAsStringAsync();
+                    _logger.LogWarning("Failed to delete tag {Tag} from card {CardId}. Status: {Status}, Error: {Error}", tag, cardId, response.StatusCode, error);
+                }
+            }
+
+            foreach (var tag in tagsToAdd)
+            {
+                var payload = new
+                {
+                    cardid = cardId,
+                    tag = tag
+                };
+                var response = await _httpClient.PostAsJsonAsync("CardTag", payload);
+                if (!response.IsSuccessStatusCode)
+                {
+                    var error = await response.Content.ReadAsStringAsync();
+                    _logger.LogWarning("Failed to add tag {Tag} to card {CardId}. Status: {Status}, Error: {Error}", tag, cardId, response.StatusCode, error);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating tags for card {CardId} via DAB.", cardId);
+            throw;
+        }
+    }
 }

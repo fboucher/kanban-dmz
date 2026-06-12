@@ -105,7 +105,6 @@
 
 /* Premium Card Design */
 .kanban-card {
-    cursor: grab;
     transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.25s ease;
     border: 1px solid var(--neutral-stroke-card-rest);
     border-radius: 12px;
@@ -113,7 +112,11 @@
     padding: 1rem;
 }
 
-.kanban-card:hover {
+.kanban-card.clickable-card {
+    cursor: pointer;
+}
+
+.kanban-card.clickable-card:hover {
     transform: translateY(-4px);
     box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
     border-color: var(--accent-fill-hover);

@@ -1,0 +1,132 @@
+@using Microsoft.FluentUI.AspNetCore.Components
+@using KanbanDmz.Domain
+@using KanbanDmz.Web.Components.Pages
+
+<FluentDialogBody>
+    <TitleTemplate>
+        <FluentStack VerticalAlignment="VerticalAlignment.Center" Gap="8px">
+            @if (Content.IsEdit)
+            {
+                <FluentIcon Value="@(new Icons.Regular.Size24.Edit())" Color="Color.Primary" />
+                <FluentLabel Typo="Typography.PaneHeader">Edit Card</FluentLabel>
+            }
+            else
+            {
+                <FluentIcon Value="@(new Icons.Regular.Size24.Add())" Color="Color.Primary" />
+                <FluentLabel Typo="Typography.PaneHeader">Create Card</FluentLabel>
+            }
+        </FluentStack>
+    </TitleTemplate>
+    <ChildContent>
+    <FluentStack Orientation="Orientation.Vertical" Gap="15px" Style="width: 100%;">
+        <FluentTextInput @bind-Value="Content.Title"
+                         Label="Title"
+                         Required="true"
+                         Style="width: 100%;"
+                         Placeholder="Enter card title..." />
+
+        <FluentStack Orientation="Orientation.Horizontal" Gap="15px" Style="width: 100%;">
+            <FluentSelect TOption="Category"
+                          TValue="string"
+                          Label="Category"
+                          Items="Content.Categories"
+                          OptionText="@(c => c.Name)"
+                          OptionValue="@(c => c.Id.ToString())"
+                          @bind-Value="_selectedCategoryId"
+                          Placeholder="Select Category..."
+                          Required="true"
+                          Style="width: 100%;" />
+
+            <FluentSelect TOption="Column"
+                          TValue="string"
+                          Label="Column"
+                          Items="Content.Columns"
+                          OptionText="@(c => c.Name)"
+                          OptionValue="@(c => c.Id.ToString())"
+                          @bind-Value="_selectedColumnId"
+                          Placeholder="Select Column..."
+                          Required="true"
+                          Style="width: 100%;" />
+        </FluentStack>
+
+        <FluentStack Orientation="Orientation.Horizontal" Gap="15px" Style="width: 100%;">
+            <FluentTextInput @bind-Value="Content.AssignedTo"
+                             Label="Assignee"
+                             Placeholder="Username (e.g. Frank)"
+                             Style="width: 100%;" />
+
+            <FluentTextInput @bind-Value="Content.Tags"
+                             Label="Tags"
+                             Placeholder="Comma separated (e.g. ui, db)"
+                             Style="width: 100%;" />
+        </FluentStack>
+
+        <FluentCheckbox @bind-Value="Content.IsPublic"
+                        Label="Visible to Public" />
+
+        <FluentTextArea @bind-Value="Content.PublicDescription"
+                        Label="Public Description"
+                        Rows="3"
+                        Style="width: 100%;"
+                        Placeholder="Description visible to anyone..." />
+
+        <FluentTextArea @bind-Value="Content.PrivateDescription"
+                        Label="Private Description"
+                        Rows="3"
+                        Style="width: 100%;"
+                        Placeholder="Description visible only to authenticated users..." />
+    </FluentStack>
+    </ChildContent>
+    <ActionTemplate>
+        @if (Content.IsEdit)
+        {
+            <FluentButton Appearance="ButtonAppearance.Outline" BackgroundColor="#ef4444" Color="#ffffff" OnClick="DeleteAsync">Delete Card</FluentButton>
+        }
+        <FluentButton Appearance="ButtonAppearance.Default" OnClick="CancelAsync">Cancel</FluentButton>
+        <FluentButton Appearance="ButtonAppearance.Primary" OnClick="SaveAsync" Disabled="@(!IsValid)">Save</FluentButton>
+    </ActionTemplate>
+</FluentDialogBody>
+
+@code {
+    [Parameter]
+    public CardDialogModel Content { get; set; } = default!;
+
+    [CascadingParameter]
+    public IDialogInstance DialogInstance { get; set; } = default!;
+
+    private string _selectedCategoryId
+    {
+        get => Content.CategoryId == 0 ? "" : Content.CategoryId.ToString();
+        set => Content.CategoryId = int.TryParse(value, out var id) ? id : 0;
+    }
+
+    private string _selectedColumnId
+    {
+        get => Content.ColumnId.ToString();
+        set => Content.ColumnId = Guid.TryParse(value, out var guid) ? guid : Guid.Empty;
+    }
+
+    private bool IsValid =>
+        !string.IsNullOrWhiteSpace(Content.Title)
+        && Content.CategoryId != 0
+        && Content.ColumnId != Guid.Empty;
+
+    private async Task SaveAsync()
+    {
+        if (IsValid)
+        {
+            await DialogInstance.CloseAsync(Content);
+        }
+    }
+
+    private async Task CancelAsync()
+    {
+        await DialogInstance.CancelAsync();
+    }
+
+    private async Task DeleteAsync()
+    {
+        Content.IsDelete = true;
+        await DialogInstance.CloseAsync(Content);
+    }
+}
