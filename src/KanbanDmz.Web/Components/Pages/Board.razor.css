@@ -144,6 +144,26 @@
     color: var(--neutral-foreground-disabled);
 }
 
+.card-private-description {
+    font-size: 0.825rem;
+    color: var(--neutral-foreground-hint);
+    margin-bottom: 1rem;
+    line-height: 1.5;
+    padding: 0.5rem;
+    border-radius: 8px;
+    background-color: var(--neutral-fill-input-rest);
+    border-left: 3px solid var(--accent-fill-rest);
+}
+
+.private-badge {
+    font-weight: 700;
+    color: var(--accent-fill-rest);
+    margin-right: 0.35rem;
+    text-transform: uppercase;
+    font-size: 0.7rem;
+    letter-spacing: 0.05em;
+}
+
 /* Card Metadata / Badges */
 .card-meta-row {
     display: flex;

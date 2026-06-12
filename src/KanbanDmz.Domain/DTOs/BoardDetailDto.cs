@@ -23,6 +23,7 @@ public class CardDetailDto
     public Guid Id { get; set; }
     public string Title { get; set; } = string.Empty;
     public string PublicDescription { get; set; } = string.Empty;
+    public string PrivateDescription { get; set; } = string.Empty;
     public string CategoryName { get; set; } = string.Empty;
     public List<string> Tags { get; set; } = [];
     public string AssignedTo { get; set; } = string.Empty;
