@@ -3,7 +3,9 @@
 @using KanbanDmz.Domain.DTOs
 @using KanbanDmz.Web.Services
 @using Microsoft.AspNetCore.Components.Authorization
+@using KanbanDmz.Domain
 @inject KanbanService KanbanService
+@inject IDialogService DialogService
 
 <PageTitle>Kanban Board</PageTitle>
 
@@ -32,6 +34,12 @@
                     @(_board.IsPublic ? "Public View" : "Private View")
                 </FluentBadge>
             </div>
+            @if (_isAuthenticated)
+            {
+                <FluentButton Appearance="ButtonAppearance.Primary" IconStart="@(new Icons.Regular.Size16.Add())" OnClick="@(() => OpenCreateCardDialog())">
+                    Add Card
+                </FluentButton>
+            }
         </div>
 
         <div class="board-canvas">
@@ -39,14 +47,21 @@
             {
                 <div class="board-column">
                     <div class="column-header">
-                        <h3 class="column-title">@col.Name</h3>
-                        <span class="column-count-badge">@col.Cards.Count</span>
+                        <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" Style="width: 100%;">
+                            <h3 class="column-title">@col.Name</h3>
+                            <span class="column-count-badge">@col.Cards.Count</span>
+                            <FluentSpacer />
+                            @if (_isAuthenticated)
+                            {
+                                <FluentButton Appearance="ButtonAppearance.Subtle" IconEnd="@(new Icons.Regular.Size16.Add())" OnClick="@(() => OpenCreateCardDialog(col.Id))" Title="Add Card to Column" aria-label="Add Card to Column" />
+                            }
+                        </FluentStack>
                     </div>
 
                     <div class="column-cards">
                         @foreach (var card in col.Cards)
                         {
-                            <FluentCard Class="kanban-card">
+                            <FluentCard Class="@($"kanban-card {(_isAuthenticated ? "clickable-card" : "")}")" @onclick="@(() => OnCardClicked(card))">
                                 <h4 class="card-title">@card.Title</h4>
 
                                 @if (!string.IsNullOrWhiteSpace(card.PublicDescription))
@@ -93,22 +108,23 @@
                                             <span class="assignee-unassigned">Unassigned</span>
                                         </div>
                                     }
-
                                     @if (_isAuthenticated)
                                     {
-                                        <FluentButton Appearance="ButtonAppearance.Subtle"
-                                                      OnClick="@(() => ToggleVisibility(card.Id))"
-                                                      Title="@(card.IsPublic ? "Make Private" : "Make Public")"
-                                                      aria-label="@(card.IsPublic ? "Make Private" : "Make Public")">
-                                            @if (card.IsPublic)
-                                            {
-                                                <FluentIcon Value="@(new Icons.Regular.Size16.Eye())" Color="Color.Default" />
-                                            }
-                                            else
-                                            {
-                                                <FluentIcon Value="@(new Icons.Regular.Size16.EyeOff())" Color="Color.Primary" />
-                                            }
-                                        </FluentButton>
+                                        <span @onclick:stopPropagation="true">
+                                            <FluentButton Appearance="ButtonAppearance.Subtle"
+                                                          OnClick="@(() => ToggleVisibility(card.Id))"
+                                                          Title="@(card.IsPublic ? "Make Private" : "Make Public")"
+                                                          aria-label="@(card.IsPublic ? "Make Private" : "Make Public")">
+                                                @if (card.IsPublic)
+                                                {
+                                                    <FluentIcon Value="@(new Icons.Regular.Size16.Eye())" Color="Color.Default" />
+                                                }
+                                                else
+                                                {
+                                                    <FluentIcon Value="@(new Icons.Regular.Size16.EyeOff())" Color="Color.Primary" />
+                                                }
+                                            </FluentButton>
+                                        </span>
                                     }
                                     else
                                     {
@@ -165,6 +181,192 @@
         }
     }
 
+    private async Task OnCardClicked(CardDetailDto cardDto)
+    {
+        if (!_isAuthenticated || _board == null) return;
+
+        try
+        {
+            var categories = await KanbanService.GetCategoriesAsync();
+            var columnsList = _board.Columns.Select(c => new Column
+            {
+                Id = c.Id,
+                BoardId = _board.Id,
+                Name = c.Name,
+                SortOrder = c.SortOrder
+            }).ToList();
+
+            var categoryId = categories.FirstOrDefault(c => c.Name.Equals(cardDto.CategoryName, StringComparison.OrdinalIgnoreCase))?.Id ?? 0;
+            var columnId = _board.Columns.FirstOrDefault(c => c.Cards.Any(card => card.Id == cardDto.Id))?.Id ?? Guid.Empty;
+
+            var model = new CardDialogModel
+            {
+                Id = cardDto.Id,
+                BoardId = _board.Id,
+                ColumnId = columnId,
+                Title = cardDto.Title,
+                PublicDescription = cardDto.PublicDescription,
+                PrivateDescription = cardDto.PrivateDescription,
+                CategoryId = categoryId,
+                AssignedTo = cardDto.AssignedTo,
+                IsPublic = cardDto.IsPublic,
+                Tags = string.Join(", ", cardDto.Tags),
+                IsEdit = true,
+                Columns = columnsList,
+                Categories = categories
+            };
+
+            var options = new DialogOptions
+            {
+                Width = "500px",
+                Modal = true,
+                PreventDismissOnEscape = true,
+                Parameters = new Dictionary<string, object?>
+                {
+                    { "Content", model }
+                }
+            };
+
+            var dialogResult = await DialogService.ShowDialogAsync<CardDialog>(options);
+
+            if (!dialogResult.Cancelled && dialogResult.Value is CardDialogModel resultModel)
+            {
+                if (resultModel.IsDelete)
+                {
+                    var success = await KanbanService.DeleteCardAsync(resultModel.Id);
+                    if (success)
+                    {
+                        await LoadBoardAsync();
+                    }
+                    else
+                    {
+                        _errorMessage = "Failed to delete card.";
+                    }
+                }
+                else
+                {
+                    var card = new Card
+                    {
+                        Id = resultModel.Id,
+                        BoardId = resultModel.BoardId,
+                        ColumnId = resultModel.ColumnId,
+                        Title = resultModel.Title,
+                        PublicDescription = resultModel.PublicDescription,
+                        PrivateDescription = resultModel.PrivateDescription,
+                        CategoryId = resultModel.CategoryId,
+                        AssignedTo = resultModel.AssignedTo,
+                        IsPublic = resultModel.IsPublic
+                    };
+
+                    var success = await KanbanService.UpdateCardAsync(card);
+                    if (success)
+                    {
+                        var tagList = resultModel.Tags
+                            .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                            .Select(t => t.Trim())
+                            .Where(t => !string.IsNullOrEmpty(t))
+                            .ToList();
+                        await KanbanService.UpdateCardTagsAsync(card.Id, tagList);
+                        await LoadBoardAsync();
+                    }
+                    else
+                    {
+                        _errorMessage = "Failed to update card details.";
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"An error occurred during card update: {ex.Message}";
+        }
+    }
+
+    private async Task OpenCreateCardDialog(Guid? columnId = null)
+    {
+        if (!_isAuthenticated || _board == null) return;
+
+        try
+        {
+            var categories = await KanbanService.GetCategoriesAsync();
+            var columnsList = _board.Columns.Select(c => new Column
+            {
+                Id = c.Id,
+                BoardId = _board.Id,
+                Name = c.Name,
+                SortOrder = c.SortOrder
+            }).ToList();
+
+            var model = new CardDialogModel
+            {
+                BoardId = _board.Id,
+                ColumnId = columnId ?? columnsList.FirstOrDefault()?.Id ?? Guid.Empty,
+                IsEdit = false,
+                Columns = columnsList,
+                Categories = categories,
+                IsPublic = true
+            };
+
+            var options = new DialogOptions
+            {
+                Width = "500px",
+                Modal = true,
+                PreventDismissOnEscape = true,
+                Parameters = new Dictionary<string, object?>
+                {
+                    { "Content", model }
+                }
+            };
+
+            var dialogResult = await DialogService.ShowDialogAsync<CardDialog>(options);
+
+            if (!dialogResult.Cancelled && dialogResult.Value is CardDialogModel resultModel)
+            {
+                var card = new Card
+                {
+                    BoardId = resultModel.BoardId,
+                    ColumnId = resultModel.ColumnId,
+                    Title = resultModel.Title,
+                    PublicDescription = resultModel.PublicDescription,
+                    PrivateDescription = resultModel.PrivateDescription,
+                    CategoryId = resultModel.CategoryId,
+                    AssignedTo = resultModel.AssignedTo,
+                    IsPublic = resultModel.IsPublic,
+                    CreatedBy = "Frank"
+                };
+
+                if (AuthStateTask != null)
+                {
+                    var authState = await AuthStateTask;
+                    if (!string.IsNullOrEmpty(authState.User.Identity?.Name))
+                    {
+                        card.CreatedBy = authState.User.Identity.Name;
+                    }
+                }
+
+                var newCard = await KanbanService.CreateCardAsync(card);
+                if (newCard != null)
+                {
+                    var tagList = resultModel.Tags
+                        .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                        .Select(t => t.Trim())
+                        .Where(t => !string.IsNullOrEmpty(t))
+                        .ToList();
+                    await KanbanService.UpdateCardTagsAsync(newCard.Id, tagList);
+                    await LoadBoardAsync();
+                }
+                else
+                {
+                    _errorMessage = "Failed to create card.";
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"An error occurred during card creation: {ex.Message}";
+        }
+    }
+
     private async Task LoadBoardAsync()
     {
         _loading = true;
@@ -213,4 +415,3 @@
         return (parts[0][0].ToString() + parts[^1][0].ToString()).ToUpperInvariant();
     }
 }
-
