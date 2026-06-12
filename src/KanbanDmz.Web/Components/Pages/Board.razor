@@ -181,6 +181,37 @@
         }
     }
 
+    private List<Column> GetColumnList() =>
+        _board!.Columns.Select(c => new Column
+        {
+            Id = c.Id,
+            BoardId = _board.Id,
+            Name = c.Name,
+            SortOrder = c.SortOrder
+        }).ToList();
+
+    private static List<string> ParseTags(string tags) =>
+        tags.Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Select(t => t.Trim())
+            .Where(t => !string.IsNullOrEmpty(t))
+            .ToList();
+
+    private async Task<DialogResult> ShowCardDialogAsync(CardDialogModel model)
+    {
+        var options = new DialogOptions
+        {
+            Width = "500px",
+            Modal = true,
+            PreventDismissOnEscape = true,
+            Parameters = new Dictionary<string, object?>
+            {
+                { "Content", model }
+            }
+        };
+
+        return await DialogService.ShowDialogAsync<CardDialog>(options);
+    }
+
     private async Task OnCardClicked(CardDetailDto cardDto)
     {
         if (!_isAuthenticated || _board == null) return;
@@ -188,14 +219,6 @@
         try
         {
             var categories = await KanbanService.GetCategoriesAsync();
-            var columnsList = _board.Columns.Select(c => new Column
-            {
-                Id = c.Id,
-                BoardId = _board.Id,
-                Name = c.Name,
-                SortOrder = c.SortOrder
-            }).ToList();
-
             var categoryId = categories.FirstOrDefault(c => c.Name.Equals(cardDto.CategoryName, StringComparison.OrdinalIgnoreCase))?.Id ?? 0;
             var columnId = _board.Columns.FirstOrDefault(c => c.Cards.Any(card => card.Id == cardDto.Id))?.Id ?? Guid.Empty;
 
@@ -212,22 +235,11 @@
                 IsPublic = cardDto.IsPublic,
                 Tags = string.Join(", ", cardDto.Tags),
                 IsEdit = true,
-                Columns = columnsList,
+                Columns = GetColumnList(),
                 Categories = categories
             };
 
-            var options = new DialogOptions
-            {
-                Width = "500px",
-                Modal = true,
-                PreventDismissOnEscape = true,
-                Parameters = new Dictionary<string, object?>
-                {
-                    { "Content", model }
-                }
-            };
-
-            var dialogResult = await DialogService.ShowDialogAsync<CardDialog>(options);
+            var dialogResult = await ShowCardDialogAsync(model);
 
             if (!dialogResult.Cancelled && dialogResult.Value is CardDialogModel resultModel)
             {
@@ -261,12 +273,7 @@
                     var success = await KanbanService.UpdateCardAsync(card);
                     if (success)
                     {
-                        var tagList = resultModel.Tags
-                            .Split(',', StringSplitOptions.RemoveEmptyEntries)
-                            .Select(t => t.Trim())
-                            .Where(t => !string.IsNullOrEmpty(t))
-                            .ToList();
-                        await KanbanService.UpdateCardTagsAsync(card.Id, tagList);
+                        await KanbanService.UpdateCardTagsAsync(card.Id, ParseTags(resultModel.Tags));
                         await LoadBoardAsync();
                     }
                     else
@@ -289,39 +296,24 @@
         try
         {
             var categories = await KanbanService.GetCategoriesAsync();
-            var columnsList = _board.Columns.Select(c => new Column
-            {
-                Id = c.Id,
-                BoardId = _board.Id,
-                Name = c.Name,
-                SortOrder = c.SortOrder
-            }).ToList();
 
             var model = new CardDialogModel
             {
                 BoardId = _board.Id,
-                ColumnId = columnId ?? columnsList.FirstOrDefault()?.Id ?? Guid.Empty,
+                ColumnId = columnId ?? GetColumnList().FirstOrDefault()?.Id ?? Guid.Empty,
                 IsEdit = false,
-                Columns = columnsList,
+                Columns = GetColumnList(),
                 Categories = categories,
                 IsPublic = true
             };
 
-            var options = new DialogOptions
-            {
-                Width = "500px",
-                Modal = true,
-                PreventDismissOnEscape = true,
-                Parameters = new Dictionary<string, object?>
-                {
-                    { "Content", model }
-                }
-            };
-
-            var dialogResult = await DialogService.ShowDialogAsync<CardDialog>(options);
+            var dialogResult = await ShowCardDialogAsync(model);
 
             if (!dialogResult.Cancelled && dialogResult.Value is CardDialogModel resultModel)
             {
+                var authState = AuthStateTask != null ? await AuthStateTask : null;
+                var createdBy = authState?.User.Identity?.Name;
+
                 var card = new Card
                 {
                     BoardId = resultModel.BoardId,
@@ -332,27 +324,13 @@
                     CategoryId = resultModel.CategoryId,
                     AssignedTo = resultModel.AssignedTo,
                     IsPublic = resultModel.IsPublic,
-                    CreatedBy = "Frank"
+                    CreatedBy = createdBy ?? "Unknown"
                 };
-
-                if (AuthStateTask != null)
-                {
-                    var authState = await AuthStateTask;
-                    if (!string.IsNullOrEmpty(authState.User.Identity?.Name))
-                    {
-                        card.CreatedBy = authState.User.Identity.Name;
-                    }
-                }
 
                 var newCard = await KanbanService.CreateCardAsync(card);
                 if (newCard != null)
                 {
-                    var tagList = resultModel.Tags
-                        .Split(',', StringSplitOptions.RemoveEmptyEntries)
-                        .Select(t => t.Trim())
-                        .Where(t => !string.IsNullOrEmpty(t))
-                        .ToList();
-                    await KanbanService.UpdateCardTagsAsync(newCard.Id, tagList);
+                    await KanbanService.UpdateCardTagsAsync(newCard.Id, ParseTags(resultModel.Tags));
                     await LoadBoardAsync();
                 }
                 else
