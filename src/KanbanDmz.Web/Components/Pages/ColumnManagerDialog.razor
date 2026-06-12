@@ -1,0 +1,295 @@
+@using Microsoft.FluentUI.AspNetCore.Components
+@using KanbanDmz.Domain
+@using KanbanDmz.Domain.DTOs
+@using KanbanDmz.Web.Services
+@inject KanbanService KanbanService
+@inject IDialogService DialogService
+
+<FluentDialogBody>
+    <TitleTemplate>
+        <FluentStack VerticalAlignment="VerticalAlignment.Center" Gap="8px">
+            <FluentIcon Value="@(new Icons.Regular.Size24.Board())" Color="Color.Primary" />
+            <FluentLabel Typo="Typography.PaneHeader">Manage Columns</FluentLabel>
+        </FluentStack>
+    </TitleTemplate>
+    <ChildContent>
+        <FluentStack Orientation="Orientation.Vertical" Gap="15px" Style="width: 100%; max-height: 450px; overflow-y: auto;">
+            
+            @if (_errorMessage != null)
+            {
+                <div style="background-color: #fee2e2; color: #ef4444; border: 1px solid #fca5a5; padding: 10px; border-radius: 4px; margin-bottom: 15px; font-weight: 500; font-size: 0.9rem; display: flex; justify-content: space-between; align-items: center; width: 100%; box-sizing: border-box;">
+                    <span>@_errorMessage</span>
+                    <FluentButton Appearance="ButtonAppearance.Subtle" IconStart="@(new Icons.Regular.Size16.Dismiss())" OnClick="@(() => _errorMessage = null)" Style="color: #ef4444;" />
+                </div>
+            }
+
+            <FluentStack Orientation="Orientation.Vertical" Gap="8px" Style="width: 100%;">
+                @for (int i = 0; i < _columns.Count; i++)
+                {
+                    var index = i;
+                    var col = _columns[index];
+                    var isEditing = _editingColumnId == col.Id;
+
+                    <FluentCard Style="padding: 10px; width: 100%;" MinimalStyle="true">
+                        <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" Gap="10px" Style="width: 100%;">
+                            @if (isEditing)
+                            {
+                                <FluentTextInput @bind-Value="_editingName" 
+                                                 Required="true"
+                                                 Style="flex-grow: 1;"
+                                                 aria-label="Column Name" />
+                                <FluentButton Appearance="ButtonAppearance.Primary" 
+                                              IconStart="@(new Icons.Regular.Size16.Checkmark())" 
+                                              OnClick="@(() => SaveRenameAsync(col))" 
+                                              Title="Save" />
+                                <FluentButton Appearance="ButtonAppearance.Outline" 
+                                              IconStart="@(new Icons.Regular.Size16.Dismiss())" 
+                                              OnClick="CancelRename" 
+                                              Title="Cancel" />
+                            }
+                            else
+                            {
+                                <FluentLabel Style="font-weight: 600; flex-grow: 1;">@col.Name</FluentLabel>
+                                
+                                <FluentButton Appearance="ButtonAppearance.Subtle" 
+                                              IconStart="@(new Icons.Regular.Size16.ArrowUp())" 
+                                              Disabled="@(index == 0)" 
+                                              OnClick="@(() => MoveUpAsync(index))" 
+                                              Title="Move Up" />
+                                
+                                <FluentButton Appearance="ButtonAppearance.Subtle" 
+                                              IconStart="@(new Icons.Regular.Size16.ArrowDown())" 
+                                              Disabled="@(index == _columns.Count - 1)" 
+                                              OnClick="@(() => MoveDownAsync(index))" 
+                                              Title="Move Down" />
+                                
+                                <FluentButton Appearance="ButtonAppearance.Subtle" 
+                                              IconStart="@(new Icons.Regular.Size16.Edit())" 
+                                              OnClick="@(() => StartRename(col))" 
+                                              Title="Rename" />
+                                
+                                <FluentButton Appearance="ButtonAppearance.Subtle" 
+                                              IconStart="@(new Icons.Regular.Size16.Delete())" 
+                                              OnClick="@(() => DeleteColumnAsync(col))" 
+                                              Title="Delete" 
+                                              Color="Color.Error" />
+                            }
+                        </FluentStack>
+                    </FluentCard>
+                }
+            </FluentStack>
+
+            <hr style="border: 0; border-top: 1px solid var(--neutral-stroke-divider-rest); width: 100%; margin: 10px 0;" />
+
+            <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Bottom" Gap="15px" Style="width: 100%;">
+                <FluentTextInput @bind-Value="_newColumnName" 
+                                 Label="New Column Name" 
+                                 Placeholder="Enter column name..." 
+                                 Style="flex-grow: 1;" />
+                <FluentButton Appearance="ButtonAppearance.Primary" 
+                              IconStart="@(new Icons.Regular.Size16.Add())" 
+                              OnClick="AddColumnAsync"
+                              Disabled="@(string.IsNullOrWhiteSpace(_newColumnName))">
+                    Add Column
+                </FluentButton>
+            </FluentStack>
+        </FluentStack>
+    </ChildContent>
+    <ActionTemplate>
+        <FluentButton Appearance="ButtonAppearance.Primary" OnClick="CloseAsync">Close</FluentButton>
+    </ActionTemplate>
+</FluentDialogBody>
+
+@code {
+    [Parameter]
+    public BoardDetailDto Board { get; set; } = default!;
+
+    [CascadingParameter]
+    public IDialogInstance DialogInstance { get; set; } = default!;
+
+    private List<Column> _columns = [];
+    private string? _newColumnName;
+    private string? _errorMessage;
+    private bool _hasChanges;
+
+    private Guid? _editingColumnId;
+    private string _editingName = string.Empty;
+
+    protected override void OnInitialized()
+    {
+        if (Board != null)
+        {
+            _columns = Board.Columns.Select(c => new Column
+            {
+                Id = c.Id,
+                BoardId = Board.Id,
+                Name = c.Name,
+                SortOrder = c.SortOrder
+            }).OrderBy(c => c.SortOrder).ToList();
+        }
+    }
+
+    private async Task AddColumnAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_newColumnName)) return;
+
+        _errorMessage = null;
+        try
+        {
+            var nextSortOrder = _columns.Any() ? _columns.Max(c => c.SortOrder) + 1 : 0;
+            var column = new Column
+            {
+                BoardId = Board.Id,
+                Name = _newColumnName.Trim(),
+                SortOrder = nextSortOrder
+            };
+
+            var created = await KanbanService.CreateColumnAsync(column);
+            if (created != null)
+            {
+                _columns.Add(created);
+                _newColumnName = null;
+                _hasChanges = true;
+            }
+            else
+            {
+                _errorMessage = "Failed to create the column in the database.";
+            }
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Error adding column: {ex.Message}";
+        }
+    }
+
+    private void StartRename(Column col)
+    {
+        _editingColumnId = col.Id;
+        _editingName = col.Name;
+    }
+
+    private void CancelRename()
+    {
+        _editingColumnId = null;
+        _editingName = string.Empty;
+    }
+
+    private async Task SaveRenameAsync(Column col)
+    {
+        if (string.IsNullOrWhiteSpace(_editingName)) return;
+
+        _errorMessage = null;
+        try
+        {
+            col.Name = _editingName.Trim();
+            var success = await KanbanService.UpdateColumnAsync(col);
+            if (success)
+            {
+                _editingColumnId = null;
+                _editingName = string.Empty;
+                _hasChanges = true;
+            }
+            else
+            {
+                _errorMessage = "Failed to update column name.";
+            }
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Error updating column: {ex.Message}";
+        }
+    }
+
+    private async Task MoveUpAsync(int index)
+    {
+        if (index <= 0 || index >= _columns.Count) return;
+        await SwapColumnsAsync(index, index - 1);
+    }
+
+    private async Task MoveDownAsync(int index)
+    {
+        if (index < 0 || index >= _columns.Count - 1) return;
+        await SwapColumnsAsync(index, index + 1);
+    }
+
+    private async Task SwapColumnsAsync(int indexA, int indexB)
+    {
+        _errorMessage = null;
+        try
+        {
+            var colA = _columns[indexA];
+            var colB = _columns[indexB];
+
+            var tempOrder = colA.SortOrder;
+            colA.SortOrder = colB.SortOrder;
+            colB.SortOrder = tempOrder;
+
+            var successA = await KanbanService.UpdateColumnAsync(colA);
+            var successB = await KanbanService.UpdateColumnAsync(colB);
+
+            if (successA && successB)
+            {
+                _columns[indexA] = colB;
+                _columns[indexB] = colA;
+                _hasChanges = true;
+            }
+            else
+            {
+                _errorMessage = "Failed to update column order in database.";
+                // Revert local sort orders if we failed
+                colB.SortOrder = colA.SortOrder;
+                colA.SortOrder = tempOrder;
+            }
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Error swapping columns: {ex.Message}";
+        }
+    }
+
+    private async Task DeleteColumnAsync(Column col)
+    {
+        _errorMessage = null;
+
+        // Check if there are cards in the column
+        var origCol = Board.Columns.FirstOrDefault(c => c.Id == col.Id);
+        if (origCol != null && origCol.Cards.Count > 0)
+        {
+            await DialogService.ShowErrorAsync("Cannot delete column because it contains cards. Move or delete the cards first.", "Delete Blocked");
+            return;
+        }
+
+        var result = await DialogService.ShowConfirmationAsync(
+            $"Are you sure you want to delete the column '{col.Name}'?",
+            "Delete",
+            "Cancel",
+            "Delete Column"
+        );
+
+        if (!result.Cancelled)
+        {
+            try
+            {
+                var success = await KanbanService.DeleteColumnAsync(col.Id);
+                if (success)
+                {
+                    _columns.Remove(col);
+                    _hasChanges = true;
+                }
+                else
+                {
+                    _errorMessage = "Failed to delete the column.";
+                }
+            }
+            catch (Exception ex)
+            {
+                _errorMessage = $"Error deleting column: {ex.Message}";
+            }
+        }
+    }
+
+    private async Task CloseAsync()
+    {
+        await DialogInstance.CloseAsync(_hasChanges);
+    }
+}

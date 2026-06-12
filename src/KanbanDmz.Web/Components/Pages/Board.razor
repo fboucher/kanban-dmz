@@ -36,6 +36,9 @@
             </div>
             @if (_isAuthenticated)
             {
+                <FluentButton Appearance="ButtonAppearance.Outline" IconStart="@(new Icons.Regular.Size16.Settings())" OnClick="OpenColumnManagerDialog" Style="margin-right: 8px;">
+                    Manage Columns
+                </FluentButton>
                 <FluentButton Appearance="ButtonAppearance.Primary" IconStart="@(new Icons.Regular.Size16.Add())" OnClick="@(() => OpenCreateCardDialog())">
                     Add Card
                 </FluentButton>
@@ -342,6 +345,29 @@
         catch (Exception ex)
         {
             _errorMessage = $"An error occurred during card creation: {ex.Message}";
+        }
+    }
+
+    private async Task OpenColumnManagerDialog()
+    {
+        if (!_isAuthenticated || _board == null) return;
+
+        var options = new DialogOptions
+        {
+            Width = "600px",
+            Modal = true,
+            PreventDismissOnEscape = true,
+            Parameters = new Dictionary<string, object?>
+            {
+                { "Board", _board }
+            }
+        };
+
+        var dialogResult = await DialogService.ShowDialogAsync<ColumnManagerDialog>(options);
+
+        if (!dialogResult.Cancelled && dialogResult.Value is bool hasChanges && hasChanges)
+        {
+            await LoadBoardAsync();
         }
     }
 
