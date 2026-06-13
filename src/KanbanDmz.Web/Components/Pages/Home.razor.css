@@ -1,0 +1,125 @@
+.landing-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 3rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 4rem;
+}
+
+.hero-section {
+    text-align: center;
+    padding: 3rem 1rem;
+    border-radius: 16px;
+    background: var(--neutral-fill-card-rest);
+    border: 1px solid var(--neutral-stroke-rest);
+}
+
+.hero-stack {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.hero-icon-wrapper {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    border-radius: 50%;
+    background-color: var(--accent-fill-rest);
+    color: #ffffff;
+    box-shadow: 0 8px 16px rgba(0, 120, 212, 0.25);
+}
+
+.hero-title {
+    font-size: 2.75rem;
+    font-weight: 800;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+    margin: 0;
+    color: var(--neutral-foreground-rest);
+}
+
+.hero-subtitle {
+    font-size: 1.15rem;
+    line-height: 1.6;
+    color: var(--neutral-foreground-hint);
+    margin: 0;
+}
+
+.hero-actions {
+    margin-top: 1rem;
+}
+
+.cta-primary, .cta-secondary {
+    min-height: 40px;
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+
+/* Features Grid */
+.features-section {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+.section-title {
+    font-size: 1.75rem;
+    font-weight: 700;
+    text-align: center;
+    margin: 0;
+    color: var(--neutral-foreground-rest);
+}
+
+.features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+}
+
+.feature-card {
+    padding: 1.5rem;
+    border-radius: 12px;
+    border: 1px solid var(--neutral-stroke-card-rest);
+    background-color: var(--neutral-fill-layer-card-rest);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.feature-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.05);
+}
+
+.feature-icon {
+    display: inline-flex;
+    padding: 0.5rem;
+    border-radius: 8px;
+    background-color: rgba(0, 120, 212, 0.1);
+    margin-bottom: 1rem;
+}
+
+.feature-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-top: 0;
+    margin-bottom: 0.5rem;
+    color: var(--neutral-foreground-rest);
+}
+
+.feature-desc {
+    font-size: 0.875rem;
+    line-height: 1.5;
+    color: var(--neutral-foreground-hint);
+    margin: 0;
+}
+
+@media (max-width: 600px) {
+    .hero-title {
+        font-size: 2rem;
+    }
+    .landing-container {
+        padding: 1.5rem 1rem;
+        gap: 2.5rem;
+    }
+}

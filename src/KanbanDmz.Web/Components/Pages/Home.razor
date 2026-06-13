@@ -1,0 +1,91 @@
+@page "/"
+@using Microsoft.FluentUI.AspNetCore.Components
+@using Microsoft.AspNetCore.Components.Authorization
+@inject NavigationManager Navigation
+
+<PageTitle>Kanban DMZ - Home</PageTitle>
+
+<div class="landing-container">
+    <!-- Hero Section -->
+    <div class="hero-section">
+        <FluentStack Orientation="Orientation.Vertical" HorizontalAlignment="HorizontalAlignment.Center" VerticalGap="20" Class="hero-stack">
+            <div class="hero-icon-wrapper">
+                <FluentIcon Value="@(new Icons.Filled.Size48.Board())" Color="Color.Default" />
+            </div>
+            <h1 class="hero-title">Simplify Your Workflow with Kanban DMZ</h1>
+            <p class="hero-subtitle">
+                A secure, visual project board featuring public and private zones, configurable columns, card categories, and built-in OIDC authentication.
+            </p>
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalAlignment="HorizontalAlignment.Center" HorizontalGap="15" Class="hero-actions">
+                <FluentButton Appearance="ButtonAppearance.Primary" OnClick="GoToBoard" IconEnd="@(new Icons.Regular.Size16.ArrowRight())" Class="cta-primary">
+                    Go to Kanban Board
+                </FluentButton>
+                <AuthorizeView>
+                    <NotAuthorized>
+                        <FluentButton Appearance="ButtonAppearance.Outline" OnClick="Login" IconStart="@(new Icons.Regular.Size16.ArrowEnter())" Class="cta-secondary">
+                            Log In / Register
+                        </FluentButton>
+                    </NotAuthorized>
+                </AuthorizeView>
+            </FluentStack>
+        </FluentStack>
+    </div>
+
+    <!-- Features Grid Section -->
+    <div class="features-section">
+        <h2 class="section-title">Core Capabilities</h2>
+        <div class="features-grid">
+            <FluentCard Class="feature-card">
+                <div class="feature-icon">
+                    <FluentIcon Value="@(new Icons.Regular.Size24.LockClosed())" Color="Color.Primary" />
+                </div>
+                <h3 class="feature-title">Public & Private Visibility</h3>
+                <p class="feature-desc">
+                    Control access dynamically. Public boards are visible to everyone, but individual cards can remain private and restricted to authorized members.
+                </p>
+            </FluentCard>
+
+            <FluentCard Class="feature-card">
+                <div class="feature-icon">
+                    <FluentIcon Value="@(new Icons.Regular.Size24.Tag())" Color="Color.Primary" />
+                </div>
+                <h3 class="feature-title">Flexible Taxonomy</h3>
+                <p class="feature-desc">
+                    Classify work items with lookups like Categories (Bug, Feature, Chore) and tags to structure, search, and filter cards efficiently.
+                </p>
+            </FluentCard>
+
+            <FluentCard Class="feature-card">
+                <div class="feature-icon">
+                    <FluentIcon Value="@(new Icons.Regular.Size24.Board())" Color="Color.Primary" />
+                </div>
+                <h3 class="feature-title">Configurable Columns</h3>
+                <p class="feature-desc">
+                    Set up your board's lifecycle columns (e.g. Backlog, To Do, In Progress, Done) to match the exact workflow of your development process.
+                </p>
+            </FluentCard>
+
+            <FluentCard Class="feature-card">
+                <div class="feature-icon">
+                    <FluentIcon Value="@(new Icons.Regular.Size24.Key())" Color="Color.Primary" />
+                </div>
+                <h3 class="feature-title">OIDC Authentication</h3>
+                <p class="feature-desc">
+                    Secure login and identity mapping integrated out-of-the-box with Keycloak OpenID Connect token verification protocols.
+                </p>
+            </FluentCard>
+        </div>
+    </div>
+</div>
+
+@code {
+    private void GoToBoard()
+    {
+        Navigation.NavigateTo("/board");
+    }
+
+    private void Login()
+    {
+        Navigation.NavigateTo("/login", forceLoad: true);
+    }
+}

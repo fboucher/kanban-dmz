@@ -1,0 +1,39 @@
+{
+  "realm": "kanban-dmz",
+  "enabled": true,
+  "displayName": "Kanban DMZ",
+  "sslRequired": "none",
+  "roles": {
+    "client": {
+      "account": []
+    }
+  },
+  "users": [
+    {
+      "username": "frank",
+      "enabled": true,
+      "email": "frank@kanban.local",
+      "firstName": "Frank",
+      "lastName": "User",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Password!"
+        }
+      ]
+    }
+  ],
+  "clients": [
+    {
+      "clientId": "kanban-web",
+      "enabled": true,
+      "publicClient": true,
+      "redirectUris": ["http://localhost:*"],
+      "webOrigins": ["http://localhost:*"],
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "protocol": "openid-connect"
+    }
+  ]
+}
