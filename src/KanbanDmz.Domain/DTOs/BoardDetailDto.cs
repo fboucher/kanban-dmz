@@ -35,3 +35,9 @@ public class DabResponse<T>
     [JsonPropertyName("value")]
     public List<T> Value { get; set; } = [];
 }
+
+public class BoardCreateDto
+{
+    public string Name { get; set; } = string.Empty;
+    public bool IsPublic { get; set; } = true;
+}

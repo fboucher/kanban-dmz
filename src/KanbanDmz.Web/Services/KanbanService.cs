@@ -384,4 +384,65 @@ public class KanbanService
             throw;
         }
     }
+
+    public async Task<Board?> CreateBoardAsync(Board board)
+    {
+        EnsureAuthHeaders();
+        try
+        {
+            var payload = new
+            {
+                name = board.Name,
+                ispublic = board.IsPublic
+            };
+            var response = await _httpClient.PostAsJsonAsync("Board", payload);
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<DabResponse<Board>>();
+                return result?.Value.FirstOrDefault();
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                _logger.LogError("Error creating board via DAB. Status: {Status}, Error: {Error}", response.StatusCode, error);
+                return null;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating board via DAB.");
+            throw;
+        }
+    }
+
+    public async Task<Column?> CreateColumnAsync(Column column)
+    {
+        EnsureAuthHeaders();
+        try
+        {
+            var payload = new
+            {
+                boardid = column.BoardId,
+                name = column.Name,
+                sortorder = column.SortOrder
+            };
+            var response = await _httpClient.PostAsJsonAsync("Column", payload);
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<DabResponse<Column>>();
+                return result?.Value.FirstOrDefault();
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                _logger.LogError("Error creating column via DAB. Status: {Status}, Error: {Error}", response.StatusCode, error);
+                return null;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating column via DAB.");
+            throw;
+        }
+    }
 }
