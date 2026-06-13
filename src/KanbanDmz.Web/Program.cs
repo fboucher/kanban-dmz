@@ -42,7 +42,7 @@ builder.Services.AddAuthentication(options =>
     options.ResponseType = "code";
     options.SaveTokens = true;
     options.RequireHttpsMetadata = false;
-    options.MetadataAddress = $"{authority}/auth/realms/kanban-dmz/.well-known/openid-configuration";
+    options.MetadataAddress = builder.Configuration["Keycloak:MetadataAddress"] ?? $"{authority}/auth/realms/kanban-dmz/.well-known/openid-configuration";
 
     options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
     {
