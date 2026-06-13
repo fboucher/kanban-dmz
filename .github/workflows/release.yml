@@ -1,0 +1,41 @@
+name: Build and Publish Container to Docker Hub
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+          include-prerelease: true
+
+      - name: Build and Publish Container Image
+        run: |
+          # Get the tag name (e.g. v0.1.0)
+          TAG_NAME="${{ github.ref_name }}"
+          # Strip 'v' prefix if it exists to get clean version number (e.g. 0.1.0)
+          VERSION_TAG="${TAG_NAME#v}"
+          
+          # Build and load into local Docker daemon
+          dotnet publish src/KanbanDmz.Web/KanbanDmz.Web.csproj -c Release -t:PublishContainer -p:ContainerImageTags="latest;${VERSION_TAG};${TAG_NAME}"
+          
+          # Push to Docker Hub
+          docker push fboucher/kanban-dmz-web:latest
+          docker push fboucher/kanban-dmz-web:${VERSION_TAG}
+          docker push fboucher/kanban-dmz-web:${TAG_NAME}
