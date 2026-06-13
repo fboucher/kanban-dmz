@@ -445,4 +445,57 @@ public class KanbanService
             throw;
         }
     }
+
+    public async Task<bool> UpdateColumnAsync(Column column)
+    {
+        EnsureAuthHeaders();
+        try
+        {
+            var payload = new
+            {
+                name = column.Name,
+                sortorder = column.SortOrder
+            };
+            var response = await _httpClient.PatchAsJsonAsync($"Column/id/{column.Id}", payload);
+            if (response.IsSuccessStatusCode)
+            {
+                return true;
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                _logger.LogError("Error updating column via DAB. Status: {Status}, Error: {Error}", response.StatusCode, error);
+                return false;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating column via DAB.");
+            throw;
+        }
+    }
+
+    public async Task<bool> DeleteColumnAsync(Guid columnId)
+    {
+        EnsureAuthHeaders();
+        try
+        {
+            var response = await _httpClient.DeleteAsync($"Column/id/{columnId}");
+            if (response.IsSuccessStatusCode)
+            {
+                return true;
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                _logger.LogError("Error deleting column via DAB. Status: {Status}, Error: {Error}", response.StatusCode, error);
+                return false;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting column via DAB.");
+            throw;
+        }
+    }
 }

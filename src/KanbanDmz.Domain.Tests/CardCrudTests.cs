@@ -232,17 +232,4 @@ public class CardCrudTests
         Assert.Equal(HttpMethod.Post, postReq.Method);
         Assert.Equal("/CardTag", postReq.RequestUri!.AbsolutePath);
     }
-
-    [Fact(Skip = "Debug tool to inspect assembly types")]
-    public void InspectAssemblyTypes()
-    {
-        var assembly = typeof(Microsoft.FluentUI.AspNetCore.Components.FluentButton).Assembly;
-        var types = assembly.GetTypes()
-            .Select(t => t.FullName)
-            .ToList();
-        
-        // System.IO.File.WriteAllLines("/home/frank/gh/kanban-dmz/types.txt", types!);
-        Assert.True(false);
-    }
 }
-
