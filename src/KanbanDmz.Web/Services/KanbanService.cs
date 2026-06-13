@@ -294,4 +294,94 @@ public class KanbanService
             throw;
         }
     }
+
+    public async Task<Category?> CreateCategoryAsync(string name)
+    {
+        EnsureAuthHeaders();
+        try
+        {
+            var payload = new { name = name };
+            var response = await _httpClient.PostAsJsonAsync("Category", payload);
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<DabResponse<Category>>();
+                return result?.Value.FirstOrDefault();
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                _logger.LogError("Error creating category via DAB. Status: {Status}, Error: {Error}", response.StatusCode, error);
+                return null;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating category via DAB.");
+            throw;
+        }
+    }
+
+    public async Task<bool> UpdateCategoryAsync(Category category)
+    {
+        EnsureAuthHeaders();
+        try
+        {
+            var payload = new { name = category.Name };
+            var response = await _httpClient.PatchAsJsonAsync($"Category/id/{category.Id}", payload);
+            if (response.IsSuccessStatusCode)
+            {
+                return true;
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                _logger.LogError("Error updating category via DAB. Status: {Status}, Error: {Error}", response.StatusCode, error);
+                return false;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating category via DAB.");
+            throw;
+        }
+    }
+
+    public async Task<bool> DeleteCategoryAsync(int categoryId)
+    {
+        EnsureAuthHeaders();
+        try
+        {
+            var response = await _httpClient.DeleteAsync($"Category/id/{categoryId}");
+            if (response.IsSuccessStatusCode)
+            {
+                return true;
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                _logger.LogError("Error deleting category via DAB. Status: {Status}, Error: {Error}", response.StatusCode, error);
+                return false;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting category via DAB.");
+            throw;
+        }
+    }
+
+    public async Task<List<Card>> GetCardsByCategoryIdAsync(int categoryId)
+    {
+        EnsureAuthHeaders();
+        try
+        {
+            var response = await _httpClient.GetFromJsonAsync<DabResponse<Card>>($"Card?$filter=categoryid eq {categoryId}");
+            return response?.Value ?? [];
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching cards by category ID via DAB.");
+            throw;
+        }
+    }
 }
