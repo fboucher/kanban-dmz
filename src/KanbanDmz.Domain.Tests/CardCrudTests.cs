@@ -233,7 +233,7 @@ public class CardCrudTests
         Assert.Equal("/CardTag", postReq.RequestUri!.AbsolutePath);
     }
 
-    [Fact]
+    [Fact(Skip = "Debug tool to inspect assembly types")]
     public void InspectAssemblyTypes()
     {
         var assembly = typeof(Microsoft.FluentUI.AspNetCore.Components.FluentButton).Assembly;
@@ -241,7 +241,7 @@ public class CardCrudTests
             .Select(t => t.FullName)
             .ToList();
         
-        System.IO.File.WriteAllLines("/home/frank/gh/kanban-dmz/types.txt", types!);
+        // System.IO.File.WriteAllLines("/home/frank/gh/kanban-dmz/types.txt", types!);
         Assert.True(false);
     }
 }

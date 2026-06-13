@@ -1,0 +1,209 @@
+/* Container styling */
+.categories-page-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.page-header {
+    margin-bottom: 0.5rem;
+}
+
+.page-title {
+    font-size: 2.25rem;
+    font-weight: 800;
+    letter-spacing: -0.025em;
+    margin: 0 0 0.5rem 0;
+    background: linear-gradient(135deg, var(--accent-fill-rest) 0%, #a855f7 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.page-subtitle {
+    font-size: 1rem;
+    color: var(--neutral-foreground-hint);
+    margin: 0;
+}
+
+/* Spinner state styling */
+.state-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem;
+    gap: 1rem;
+}
+
+/* Alerts styling */
+.alert-message {
+    display: flex;
+    align-items: flex-start;
+    padding: 1rem;
+    border-radius: 12px;
+    gap: 0.75rem;
+    animation: slideDown 0.3s ease;
+}
+
+.alert-content {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.alert-error {
+    background-color: rgba(239, 68, 68, 0.08);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+}
+
+.alert-success {
+    background-color: rgba(34, 197, 94, 0.08);
+    border: 1px solid rgba(34, 197, 94, 0.2);
+    color: #22c55e;
+}
+
+.alert-text {
+    font-size: 0.95rem;
+    font-weight: 500;
+}
+
+.cards-list {
+    margin: 0.25rem 0 0 0;
+    padding-left: 1.25rem;
+    font-size: 0.9rem;
+    line-height: 1.4;
+    color: var(--neutral-foreground-rest);
+}
+
+.dismiss-btn {
+    align-self: center;
+}
+
+/* Management grid/card styles */
+.management-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.management-card {
+    padding: 1.5rem;
+    border-radius: 16px;
+    background-color: var(--neutral-fill-card-rest);
+    border: 1px solid var(--neutral-stroke-rest);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.management-card:hover {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
+}
+
+.card-header-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1.25rem;
+    border-bottom: 1px dashed var(--neutral-stroke-divider-rest);
+    padding-bottom: 0.75rem;
+}
+
+.card-section-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin: 0;
+    color: var(--neutral-foreground-rest);
+}
+
+/* Form Styling */
+.form-content {
+    margin-top: 0.5rem;
+}
+
+/* List Styling */
+.empty-state {
+    color: var(--neutral-foreground-hint);
+    font-style: italic;
+    margin: 0;
+    padding: 1rem 0;
+}
+
+.categories-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.category-row {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    background-color: var(--neutral-fill-secondary-rest);
+    border: 1px solid transparent;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.category-row:hover {
+    background-color: var(--neutral-fill-hover);
+    border-color: var(--neutral-stroke-rest);
+}
+
+.editing-row {
+    background-color: var(--neutral-fill-input-rest);
+    border-color: var(--accent-fill-rest);
+}
+
+.category-info {
+    display: flex;
+    align-items: center;
+}
+
+/* Category Badge Styling (aligned with board classes) */
+.category-pill-display {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.025em;
+    text-transform: uppercase;
+}
+
+.badge-bug {
+    background-color: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+}
+
+.badge-feature {
+    background-color: rgba(59, 130, 246, 0.15);
+    color: #3b82f6;
+}
+
+.badge-chore {
+    background-color: rgba(168, 85, 247, 0.15);
+    color: #a855f7;
+}
+
+/* Fallback/Unknown badge */
+[class*="badge-"] {
+    background-color: rgba(107, 114, 128, 0.15);
+    color: #9ca3af;
+}
+
+/* Animations */
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

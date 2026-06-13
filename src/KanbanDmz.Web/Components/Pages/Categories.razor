@@ -1,0 +1,344 @@
+@page "/categories"
+@attribute [Authorize]
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.FluentUI.AspNetCore.Components
+@using Microsoft.AspNetCore.Components.Authorization
+@using KanbanDmz.Domain
+@using KanbanDmz.Web.Services
+@inject KanbanService KanbanService
+@inject IDialogService DialogService
+
+<PageTitle>Category Management</PageTitle>
+
+<div class="categories-page-container">
+    <div class="page-header">
+        <div class="header-content">
+            <h1 class="page-title">Category Management</h1>
+            <p class="page-subtitle">Add, rename, and delete board categories.</p>
+        </div>
+    </div>
+
+    @if (_loading)
+    {
+        <div class="state-container">
+            <FluentSpinner />
+            <FluentLabel Typo="Typography.Body">Loading categories...</FluentLabel>
+        </div>
+    }
+    else
+    {
+        @if (!string.IsNullOrEmpty(_errorMessage))
+        {
+            <div class="alert-message alert-error">
+                <FluentIcon Value="@(new Icons.Regular.Size20.ErrorCircle())" Color="Color.Error" />
+                <div class="alert-content">
+                    <span class="alert-text">@_errorMessage</span>
+                    @if (_referencingCards != null && _referencingCards.Any())
+                    {
+                        <ul class="cards-list">
+                            @foreach (var card in _referencingCards)
+                            {
+                                <li><strong>@card.Title</strong> (in column: @(_columnsMap.TryGetValue(card.ColumnId, out var colName) ? colName : "Unknown"))</li>
+                            }
+                        </ul>
+                    }
+                </div>
+                <FluentButton Appearance="ButtonAppearance.Subtle" IconEnd="@(new Icons.Regular.Size16.Dismiss())" OnClick="@(() => ClearError())" Class="dismiss-btn" />
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(_successMessage))
+        {
+            <div class="alert-message alert-success">
+                <FluentIcon Value="@(new Icons.Regular.Size20.CheckmarkCircle())" Color="Color.Success" />
+                <span class="alert-text">@_successMessage</span>
+                <FluentSpacer />
+                <FluentButton Appearance="ButtonAppearance.Subtle" IconEnd="@(new Icons.Regular.Size16.Dismiss())" OnClick="@(() => _successMessage = null)" Class="dismiss-btn" />
+            </div>
+        }
+
+        <div class="management-grid">
+            <!-- Add Category Card -->
+            <FluentCard Class="management-card form-card">
+                <div class="card-header-group">
+                    <FluentIcon Value="@(new Icons.Regular.Size20.AddCircle())" Color="Color.Primary" />
+                    <h3 class="card-section-title">Add New Category</h3>
+                </div>
+                <div class="form-content">
+                    <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" Gap="15px">
+                        <FluentTextInput @bind-Value="_newCategoryName"
+                                         Placeholder="Enter category name (e.g. Bug, Feature, Chore)"
+                                         Required="true"
+                                         Style="flex-grow: 1;"
+                                         @onkeydown="@OnAddKeyDown" />
+                        <FluentButton Appearance="ButtonAppearance.Primary" 
+                                      OnClick="AddCategoryAsync" 
+                                      Disabled="@string.IsNullOrWhiteSpace(_newCategoryName)">
+                            Add Category
+                        </FluentButton>
+                    </FluentStack>
+                </div>
+            </FluentCard>
+
+            <!-- Categories List Card -->
+            <FluentCard Class="management-card list-card">
+                <div class="card-header-group">
+                    <FluentIcon Value="@(new Icons.Regular.Size20.Tag())" Color="Color.Primary" />
+                    <h3 class="card-section-title">Categories Lookup Table</h3>
+                </div>
+                
+                @if (_categories == null || !_categories.Any())
+                {
+                    <p class="empty-state">No categories defined yet.</p>
+                }
+                else
+                {
+                    <div class="categories-list">
+                        @foreach (var category in _categories)
+                        {
+                            <div class="category-row @(_editingCategoryId == category.Id ? "editing-row" : "")">
+                                @if (_editingCategoryId == category.Id)
+                                {
+                                    <FluentTextInput @bind-Value="_editingCategoryName"
+                                                     Required="true"
+                                                     Style="flex-grow: 1; max-width: 400px;"
+                                                     @onkeydown="@((e) => OnEditKeyDown(e, category))" />
+                                    <FluentStack Orientation="Orientation.Horizontal" Gap="8px" Style="margin-left: auto;">
+                                        <FluentButton Appearance="ButtonAppearance.Primary" 
+                                                      IconStart="@(new Icons.Regular.Size16.Checkmark())" 
+                                                      OnClick="@(() => SaveRenameAsync(category))"
+                                                      Disabled="@string.IsNullOrWhiteSpace(_editingCategoryName)"
+                                                      Title="Save Changes" />
+                                        <FluentButton Appearance="ButtonAppearance.Outline" 
+                                                      IconStart="@(new Icons.Regular.Size16.Dismiss())" 
+                                                      OnClick="CancelRename"
+                                                      Title="Cancel" />
+                                    </FluentStack>
+                                }
+                                else
+                                {
+                                    <div class="category-info">
+                                        <span class="category-pill-display badge-@category.Name.ToLowerInvariant()">@category.Name</span>
+                                    </div>
+                                    <FluentStack Orientation="Orientation.Horizontal" Gap="8px" Style="margin-left: auto;">
+                                        <FluentButton Appearance="ButtonAppearance.Subtle" 
+                                                      IconStart="@(new Icons.Regular.Size16.Edit())" 
+                                                      OnClick="@(() => StartRename(category))"
+                                                      Title="Rename Category" />
+                                        <FluentButton Appearance="ButtonAppearance.Subtle" 
+                                                      IconStart="@(new Icons.Regular.Size16.Delete())" 
+                                                      OnClick="@(() => ConfirmDeleteAsync(category))"
+                                                      Title="Delete Category" />
+                                    </FluentStack>
+                                }
+                            </div>
+                        }
+                    </div>
+                }
+            </FluentCard>
+        </div>
+    }
+</div>
+
+@code {
+    private List<Category> _categories = [];
+    private bool _loading = true;
+    private string? _errorMessage;
+    private string? _successMessage;
+    private string _newCategoryName = "";
+    
+    private int? _editingCategoryId;
+    private string _editingCategoryName = "";
+
+    private List<Card> _referencingCards = [];
+    private Dictionary<Guid, string> _columnsMap = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        _loading = true;
+        _errorMessage = null;
+        try
+        {
+            _categories = await KanbanService.GetCategoriesAsync();
+            // Load the board to map column IDs to names for referencing cards info
+            var defaultBoardId = new Guid("00000000-0000-0000-0000-000000000001");
+            var board = await KanbanService.GetBoardDetailAsync(defaultBoardId);
+            if (board != null)
+            {
+                _columnsMap = board.Columns.ToDictionary(c => c.Id, c => c.Name);
+            }
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Failed to load categories: {ex.Message}";
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void ClearError()
+    {
+        _errorMessage = null;
+        _referencingCards.Clear();
+    }
+
+    private async Task OnAddKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(_newCategoryName))
+        {
+            await AddCategoryAsync();
+        }
+    }
+
+    private async Task AddCategoryAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_newCategoryName)) return;
+
+        ClearError();
+        _successMessage = null;
+        var name = _newCategoryName.Trim();
+
+        // Check if duplicate locally first for fast feedback
+        if (_categories.Any(c => c.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
+        {
+            _errorMessage = $"A category named '{name}' already exists.";
+            return;
+        }
+
+        try
+        {
+            var created = await KanbanService.CreateCategoryAsync(name);
+            if (created != null)
+            {
+                _successMessage = $"Category '{name}' created successfully.";
+                _newCategoryName = "";
+                await LoadDataAsync();
+            }
+            else
+            {
+                _errorMessage = $"Failed to create category '{name}'. It may already exist or contain invalid characters.";
+            }
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"An error occurred: {ex.Message}";
+        }
+    }
+
+    private void StartRename(Category category)
+    {
+        _editingCategoryId = category.Id;
+        _editingCategoryName = category.Name;
+        ClearError();
+        _successMessage = null;
+    }
+
+    private void CancelRename()
+    {
+        _editingCategoryId = null;
+        _editingCategoryName = "";
+    }
+
+    private async Task OnEditKeyDown(KeyboardEventArgs e, Category category)
+    {
+        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(_editingCategoryName))
+        {
+            await SaveRenameAsync(category);
+        }
+        else if (e.Key == "Escape")
+        {
+            CancelRename();
+        }
+    }
+
+    private async Task SaveRenameAsync(Category category)
+    {
+        if (string.IsNullOrWhiteSpace(_editingCategoryName)) return;
+
+        ClearError();
+        _successMessage = null;
+        var newName = _editingCategoryName.Trim();
+
+        if (category.Name.Equals(newName, StringComparison.Ordinal))
+        {
+            CancelRename();
+            return;
+        }
+
+        // Check duplicate name locally
+        if (_categories.Any(c => c.Id != category.Id && c.Name.Equals(newName, StringComparison.OrdinalIgnoreCase)))
+        {
+            _errorMessage = $"A category named '{newName}' already exists.";
+            return;
+        }
+
+        try
+        {
+            category.Name = newName;
+            var success = await KanbanService.UpdateCategoryAsync(category);
+            if (success)
+            {
+                _successMessage = $"Category renamed to '{newName}' successfully.";
+                CancelRename();
+                await LoadDataAsync();
+            }
+            else
+            {
+                _errorMessage = $"Failed to rename category. It may already exist.";
+            }
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"An error occurred: {ex.Message}";
+        }
+    }
+
+    private async Task ConfirmDeleteAsync(Category category)
+    {
+        ClearError();
+        _successMessage = null;
+
+        try
+        {
+            // Check if cards reference this category
+            _referencingCards = await KanbanService.GetCardsByCategoryIdAsync(category.Id);
+            if (_referencingCards != null && _referencingCards.Count > 0)
+            {
+                _errorMessage = $"Cannot delete category '{category.Name}' because it is in use by the following {_referencingCards.Count} card(s):";
+                return;
+            }
+
+            var result = await DialogService.ShowConfirmationAsync(
+                $"Are you sure you want to delete the category '{category.Name}'?",
+                "Delete Category Confirmation",
+                "Delete",
+                "Cancel");
+
+            if (!result.Cancelled)
+            {
+                var success = await KanbanService.DeleteCategoryAsync(category.Id);
+                if (success)
+                {
+                    _successMessage = $"Category '{category.Name}' deleted successfully.";
+                    await LoadDataAsync();
+                }
+                else
+                {
+                    _errorMessage = "Failed to delete the category. Database restriction might have blocked it.";
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"An error occurred during deletion: {ex.Message}";
+        }
+    }
+}
