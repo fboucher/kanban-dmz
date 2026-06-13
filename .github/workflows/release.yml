@@ -1,9 +1,18 @@
 name: Build and Publish Container to Docker Hub
 
 on:
+  release:
+    types: [published]
   push:
     tags:
       - 'v*'
+      - '[0-9]*'
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Tag name to build/publish'
+        required: true
+        default: '0.1'
 
 jobs:
   release:
@@ -27,10 +36,16 @@ jobs:
 
       - name: Build and Publish Container Image
         run: |
-          # Get the tag name (e.g. v0.1.0)
-          TAG_NAME="${{ github.ref_name }}"
+          # Get the tag name from input, release event, or ref_name
+          INPUT_TAG="${{ github.event.inputs.tag_name }}"
+          RELEASE_TAG="${{ github.event.release.tag_name }}"
+          REF_TAG="${{ github.ref_name }}"
+          
+          TAG_NAME="${INPUT_TAG:-${RELEASE_TAG:-${REF_TAG}}}"
           # Strip 'v' prefix if it exists to get clean version number (e.g. 0.1.0)
           VERSION_TAG="${TAG_NAME#v}"
+          
+          echo "Building and publishing for tag: ${TAG_NAME} (version tag: ${VERSION_TAG})"
           
           # Build and load into local Docker daemon
           dotnet publish src/KanbanDmz.Web/KanbanDmz.Web.csproj -c Release -t:PublishContainer -p:ContainerImageTags="latest;${VERSION_TAG};${TAG_NAME}"
