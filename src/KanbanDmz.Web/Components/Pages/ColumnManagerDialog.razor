@@ -261,9 +261,9 @@
 
         var result = await DialogService.ShowConfirmationAsync(
             $"Are you sure you want to delete the column '{col.Name}'?",
+            "Delete Column",
             "Delete",
-            "Cancel",
-            "Delete Column"
+            "Cancel"
         );
 
         if (!result.Cancelled)
