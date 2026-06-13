@@ -232,6 +232,4 @@ public class CardCrudTests
         Assert.Equal(HttpMethod.Post, postReq.Method);
         Assert.Equal("/CardTag", postReq.RequestUri!.AbsolutePath);
     }
-
 }
-

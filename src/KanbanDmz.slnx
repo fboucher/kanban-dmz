@@ -4,4 +4,5 @@
   <Project Path="KanbanDmz.Domain.Tests/KanbanDmz.Domain.Tests.csproj" />
   <Project Path="KanbanDmz.ServiceDefaults/KanbanDmz.ServiceDefaults.csproj" />
   <Project Path="KanbanDmz.Web/KanbanDmz.Web.csproj" />
+  <Project Path="Kanban.Api.IntegrationTests/Kanban.Api.IntegrationTests.csproj" />
 </Solution>
