@@ -110,6 +110,42 @@ app.MapPost("/api/cards/{id}/visibility", async (Guid id, HttpContext httpContex
     return success ? Results.Ok() : Results.NotFound();
 }).DisableAntiforgery();
 
+app.MapPost("/api/boards", async (BoardCreateDto dto, HttpContext httpContext, KanbanService kanbanService, UserTokenProvider tokenProvider) =>
+{
+    if (httpContext.User.Identity?.IsAuthenticated != true)
+    {
+        return Results.Unauthorized();
+    }
+
+    tokenProvider.AccessToken = await httpContext.GetTokenAsync("access_token");
+
+    var board = new Board
+    {
+        Name = dto.Name,
+        IsPublic = dto.IsPublic
+    };
+
+    var createdBoard = await kanbanService.CreateBoardAsync(board);
+    if (createdBoard == null)
+    {
+        return Results.BadRequest("Failed to create board.");
+    }
+
+    var defaultColumns = new[] { "Backlog", "To Do", "In Progress", "Pending", "Done" };
+    for (int i = 0; i < defaultColumns.Length; i++)
+    {
+        var col = new Column
+        {
+            BoardId = createdBoard.Id,
+            Name = defaultColumns[i],
+            SortOrder = i
+        };
+        await kanbanService.CreateColumnAsync(col);
+    }
+
+    return Results.Created($"/api/boards/{createdBoard.Id}", createdBoard);
+}).DisableAntiforgery();
+
 app.Run();
 
 public partial class Program { }
