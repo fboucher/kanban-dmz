@@ -1,0 +1,64 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: postgres
+    environment:
+      POSTGRES_DB: kanban
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - ./db:/docker-entrypoint-initdb.d
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d kanban"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:latest
+    container_name: keycloak
+    command: start-dev --import-realm
+    ports:
+      - "${KEYCLOAK_PORT:-8080}:8080"
+    volumes:
+      - ./keycloak:/opt/keycloak/data/import
+    environment:
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      KC_HTTP_RELATIVE_PATH: /auth
+      KC_HOSTNAME_URL: http://localhost:${KEYCLOAK_PORT:-8080}
+      KC_HOSTNAME_STRICT: "false"
+
+  dab:
+    image: mcr.microsoft.com/azure-databases/data-api-builder:latest
+    container_name: dab
+    ports:
+      - "${DAB_PORT:-5000}:5000"
+    volumes:
+      - ./dab:/config
+    environment:
+      ConnectionStrings__kanban: Host=postgres;Database=kanban;Username=postgres;Password=${DB_PASSWORD:-postgres}
+    command: ["--ConfigFileName", "/config/dab-config.json"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  web:
+    image: ${WEB_IMAGE:-fboucher/kanban-dmz-web:latest}
+    container_name: web
+    ports:
+      - "${WEB_PORT:-8082}:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      services__dab__http__0: http://dab:5000
+      Keycloak__Authority: http://localhost:${KEYCLOAK_PORT:-8080}
+      Keycloak__MetadataAddress: http://keycloak:8080/auth/realms/kanban-dmz/.well-known/openid-configuration
+    depends_on:
+      - dab
+      - keycloak
+
+volumes:
+  postgres-data:
