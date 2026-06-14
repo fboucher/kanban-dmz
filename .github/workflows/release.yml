@@ -39,37 +39,38 @@ jobs:
 
       - name: Build and Publish Container Image
         run: |
-          # Get the tag name from input, release event, or ref_name
+          # Determine the tag from input, release event, or pushed tag ref
           INPUT_TAG="${{ github.event.inputs.tag_name }}"
           RELEASE_TAG="${{ github.event.release.tag_name }}"
           REF_TAG="${{ github.ref_name }}"
-          
           TAG_NAME="${INPUT_TAG:-${RELEASE_TAG:-${REF_TAG}}}"
-          # Strip 'v' prefix if it exists to get clean version number (e.g. 0.1.0)
+          # Strip 'v' prefix to get a clean semver (e.g. v0.1 → 0.1)
           VERSION_TAG="${TAG_NAME#v}"
-          
-          # Clean carriage returns (in case workflow is run with CRLF line endings)
           TAG_NAME=$(echo "$TAG_NAME" | tr -d '\r')
           VERSION_TAG=$(echo "$VERSION_TAG" | tr -d '\r')
-          
-          echo "Building and publishing for tag: ${TAG_NAME} (version tag: ${VERSION_TAG})"
-          
-          # ContainerImageTags (plural) with semicolons is broken on the CLI regardless of quoting
-          # (see: dotnet/sdk-container-builds#236, #311, #601)
-          # Workaround: use ContainerImageTag (singular) to build with one tag, then docker tag the rest
+          echo "Building for tag: ${TAG_NAME} (version: ${VERSION_TAG})"
+
+          # Build the container image and write it to a local tar archive.
+          # ContainerArchiveOutputPath bypasses the SDK's push path entirely,
+          # which avoids the broken ContainerImageTags validation
+          # (dotnet/sdk-container-builds#236, #311, #601).
           dotnet publish src/KanbanDmz.Web/KanbanDmz.Web.csproj \
             -c Release \
             -t:PublishContainer \
-            -p:ContainerImageTag="${VERSION_TAG}"
-          
-          # Tag and push all desired variants
+            -p:ContainerImageName=kanban-dmz-web \
+            -p:ContainerImageTag=ci-build \
+            -p:ContainerArchiveOutputPath=/tmp/kanban-dmz-web.tar
+
+          # Load the tar into the local Docker daemon, then tag and push
+          docker load --input /tmp/kanban-dmz-web.tar
+
+          docker tag kanban-dmz-web:ci-build fboucher/kanban-dmz-web:${VERSION_TAG}
+          docker tag kanban-dmz-web:ci-build fboucher/kanban-dmz-web:latest
           docker push fboucher/kanban-dmz-web:${VERSION_TAG}
-          
-          docker tag fboucher/kanban-dmz-web:${VERSION_TAG} fboucher/kanban-dmz-web:latest
           docker push fboucher/kanban-dmz-web:latest
-          
-          # If the original tag had a 'v' prefix (e.g. v0.1), also push that variant
+
+          # Also push the v-prefixed tag if the original tag had one (e.g. v0.1)
           if [ "${TAG_NAME}" != "${VERSION_TAG}" ]; then
-            docker tag fboucher/kanban-dmz-web:${VERSION_TAG} fboucher/kanban-dmz-web:${TAG_NAME}
+            docker tag kanban-dmz-web:ci-build fboucher/kanban-dmz-web:${TAG_NAME}
             docker push fboucher/kanban-dmz-web:${TAG_NAME}
           fi
