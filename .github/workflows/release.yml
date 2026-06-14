@@ -50,8 +50,11 @@ jobs:
           
           echo "Building and publishing for tag: ${TAG_NAME} (version tag: ${VERSION_TAG})"
           
+          # Export ContainerImageTags so MSBuild imports it as a property
+          export ContainerImageTags="latest;${VERSION_TAG};${TAG_NAME}"
+          
           # Build and load into local Docker daemon
-          dotnet publish src/KanbanDmz.Web/KanbanDmz.Web.csproj -c Release -t:PublishContainer -p:ContainerImageTags="\"latest;${VERSION_TAG};${TAG_NAME}\""
+          dotnet publish src/KanbanDmz.Web/KanbanDmz.Web.csproj -c Release -t:PublishContainer
           
           # Push to Docker Hub
           docker push fboucher/kanban-dmz-web:latest
