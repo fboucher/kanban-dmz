@@ -31,12 +31,6 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '10.0.x'
-          dotnet-quality: 'preview'
-
       - name: Build and Publish Container Image
         run: |
           # Determine the tag from input, release event, or pushed tag ref
@@ -50,27 +44,19 @@ jobs:
           VERSION_TAG=$(echo "$VERSION_TAG" | tr -d '\r')
           echo "Building for tag: ${TAG_NAME} (version: ${VERSION_TAG})"
 
-          # Build the container image and write it to a local tar archive.
-          # ContainerArchiveOutputPath bypasses the SDK's push path entirely,
-          # which avoids the broken ContainerImageTags validation
-          # (dotnet/sdk-container-builds#236, #311, #601).
-          dotnet publish src/KanbanDmz.Web/KanbanDmz.Web.csproj \
-            -c Release \
-            -t:PublishContainer \
-            -p:ContainerImageName=kanban-dmz-web \
-            -p:ContainerImageTag=ci-build \
-            -p:ContainerArchiveOutputPath=/tmp/kanban-dmz-web.tar
+          # Build via Dockerfile — no dotnet container SDK involved, no tag validation issues
+          docker build \
+            -f src/KanbanDmz.Web/Dockerfile \
+            -t fboucher/kanban-dmz-web:${VERSION_TAG} \
+            -t fboucher/kanban-dmz-web:latest \
+            .
 
-          # Load the tar into the local Docker daemon, then tag and push
-          docker load --input /tmp/kanban-dmz-web.tar
-
-          docker tag kanban-dmz-web:ci-build fboucher/kanban-dmz-web:${VERSION_TAG}
-          docker tag kanban-dmz-web:ci-build fboucher/kanban-dmz-web:latest
+          # Push all tags
           docker push fboucher/kanban-dmz-web:${VERSION_TAG}
           docker push fboucher/kanban-dmz-web:latest
 
           # Also push the v-prefixed tag if the original tag had one (e.g. v0.1)
           if [ "${TAG_NAME}" != "${VERSION_TAG}" ]; then
-            docker tag kanban-dmz-web:ci-build fboucher/kanban-dmz-web:${TAG_NAME}
+            docker tag fboucher/kanban-dmz-web:${VERSION_TAG} fboucher/kanban-dmz-web:${TAG_NAME}
             docker push fboucher/kanban-dmz-web:${TAG_NAME}
           fi
