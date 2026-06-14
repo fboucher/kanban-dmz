@@ -1,4 +1,4 @@
-name: Build and Publish Container to Docker Hub
+﻿name: Build and Publish Container to Docker Hub
 
 on:
   release:
@@ -47,6 +47,10 @@ jobs:
           TAG_NAME="${INPUT_TAG:-${RELEASE_TAG:-${REF_TAG}}}"
           # Strip 'v' prefix if it exists to get clean version number (e.g. 0.1.0)
           VERSION_TAG="${TAG_NAME#v}"
+          
+          # Clean carriage returns (in case workflow is run with CRLF line endings)
+          TAG_NAME=$(echo "$TAG_NAME" | tr -d '\r')
+          VERSION_TAG=$(echo "$VERSION_TAG" | tr -d '\r')
           
           echo "Building and publishing for tag: ${TAG_NAME} (version tag: ${VERSION_TAG})"
           
