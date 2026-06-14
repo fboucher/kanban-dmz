@@ -54,15 +54,21 @@ jobs:
           
           echo "Building and publishing for tag: ${TAG_NAME} (version tag: ${VERSION_TAG})"
           
-          # Build and publish — only pass tags valid for ContainerImageTags
-          # (alphanumeric, underscore, hyphen, period — no 'v' prefix allowed by MSBuild targets)
-          dotnet publish src/KanbanDmz.Web/KanbanDmz.Web.csproj -c Release -t:PublishContainer -p:ContainerImageTags="\"latest;${VERSION_TAG}\""
+          # ContainerImageTags (plural) with semicolons is broken on the CLI regardless of quoting
+          # (see: dotnet/sdk-container-builds#236, #311, #601)
+          # Workaround: use ContainerImageTag (singular) to build with one tag, then docker tag the rest
+          dotnet publish src/KanbanDmz.Web/KanbanDmz.Web.csproj \
+            -c Release \
+            -t:PublishContainer \
+            -p:ContainerImageTag="${VERSION_TAG}"
           
-          # Push numeric/latest tags (already built above)
-          docker push fboucher/kanban-dmz-web:latest
+          # Tag and push all desired variants
           docker push fboucher/kanban-dmz-web:${VERSION_TAG}
           
-          # If the original tag had a 'v' prefix, also tag and push that variant
+          docker tag fboucher/kanban-dmz-web:${VERSION_TAG} fboucher/kanban-dmz-web:latest
+          docker push fboucher/kanban-dmz-web:latest
+          
+          # If the original tag had a 'v' prefix (e.g. v0.1), also push that variant
           if [ "${TAG_NAME}" != "${VERSION_TAG}" ]; then
             docker tag fboucher/kanban-dmz-web:${VERSION_TAG} fboucher/kanban-dmz-web:${TAG_NAME}
             docker push fboucher/kanban-dmz-web:${TAG_NAME}
