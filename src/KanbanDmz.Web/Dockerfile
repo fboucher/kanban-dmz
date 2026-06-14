@@ -1,6 +1,6 @@
 # Build stage — needs all projects since KanbanDmz.Web references Domain and ServiceDefaults
-FROM mcr.microsoft.com/dotnet/sdk:10.0-preview AS build
-WORKDIR /src
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+WORKDIR /build
 
 # Copy project files first for layer-cached restore
 COPY src/KanbanDmz.Domain/KanbanDmz.Domain.csproj           src/KanbanDmz.Domain/
@@ -16,7 +16,7 @@ RUN dotnet publish src/KanbanDmz.Web/KanbanDmz.Web.csproj \
     -o /app/publish
 
 # Runtime stage
-FROM mcr.microsoft.com/dotnet/aspnet:10.0-preview AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 EXPOSE 8080
 COPY --from=build /app/publish .
