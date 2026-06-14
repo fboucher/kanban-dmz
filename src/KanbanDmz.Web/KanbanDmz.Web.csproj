@@ -19,7 +19,6 @@
     <BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
     <NoWarn>$(NoWarn)</NoWarn>
     <ContainerRepository>fboucher/kanban-dmz-web</ContainerRepository>
-    <ContainerImageTags Condition=" '$(ContainerImageTags)' == '' ">latest;$(Version)</ContainerImageTags>
   </PropertyGroup>
 
 </Project>
