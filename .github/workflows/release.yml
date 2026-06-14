@@ -1,4 +1,4 @@
-﻿name: Build and Publish Container to Docker Hub
+name: Build and Publish Container to Docker Hub
 
 on:
   release:
@@ -54,10 +54,16 @@ jobs:
           
           echo "Building and publishing for tag: ${TAG_NAME} (version tag: ${VERSION_TAG})"
           
-          # Build and load into local Docker daemon
-          dotnet publish src/KanbanDmz.Web/KanbanDmz.Web.csproj -c Release -t:PublishContainer -p:ContainerImageTags="\"latest;${VERSION_TAG};${TAG_NAME}\""
+          # Build and publish — only pass tags valid for ContainerImageTags
+          # (alphanumeric, underscore, hyphen, period — no 'v' prefix allowed by MSBuild targets)
+          dotnet publish src/KanbanDmz.Web/KanbanDmz.Web.csproj -c Release -t:PublishContainer -p:ContainerImageTags="\"latest;${VERSION_TAG}\""
           
-          # Push to Docker Hub
+          # Push numeric/latest tags (already built above)
           docker push fboucher/kanban-dmz-web:latest
           docker push fboucher/kanban-dmz-web:${VERSION_TAG}
-          docker push fboucher/kanban-dmz-web:${TAG_NAME}
+          
+          # If the original tag had a 'v' prefix, also tag and push that variant
+          if [ "${TAG_NAME}" != "${VERSION_TAG}" ]; then
+            docker tag fboucher/kanban-dmz-web:${VERSION_TAG} fboucher/kanban-dmz-web:${TAG_NAME}
+            docker push fboucher/kanban-dmz-web:${TAG_NAME}
+          fi
