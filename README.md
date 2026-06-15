@@ -1,5 +1,14 @@
 # Kanban DMZ
 
+[![.NET 10](https://img.shields.io/badge/.NET-10-512bd4?logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
+[![Test Status](https://github.com/fboucher/kanban-dmz/actions/workflows/test.yml/badge.svg)](https://github.com/fboucher/kanban-dmz/actions/workflows/test.yml)
+[![Docker Hub Version](https://img.shields.io/docker/v/fboucher/kanban-dmz-web?logo=docker&logoColor=white)](https://hub.docker.com/repository/docker/fboucher/kanban-dmz-web)
+[![GitHub Release](https://img.shields.io/github/v/release/fboucher/kanban-dmz?logo=github&logoColor=white)](https://github.com/fboucher/kanban-dmz/releases)
+[![.NET Aspire](https://img.shields.io/badge/.NET%20Aspire-Enabled-512bd4?logo=dotnet&logoColor=white)](https://learn.microsoft.com/en-us/dotnet/aspire/)
+[![Data API Builder](https://img.shields.io/badge/Data%20API%20Builder-DAB-0078d4?logo=microsoft&logoColor=white)](https://learn.microsoft.com/en-us/azure/data-api-builder/)
+[![UI: Fluent UI Blazor](https://img.shields.io/badge/UI-Fluent%20UI%20Blazor-0078d4?logo=microsoft&logoColor=white)](https://www.fluentui-blazor.net/)
+[![Auth: Keycloak](https://img.shields.io/badge/Auth-Keycloak-red?logo=keycloak&logoColor=white)](https://www.keycloak.org/)
+
 A secure, visual project board featuring public and private visibility zones (DMZ), configurable columns, card categories, and built-in OIDC authentication.
 
 ![Kanban Board Mockup](docs/images/kanban-dmz_board.png)
