@@ -2,7 +2,7 @@
 
 A secure, visual project board featuring public and private visibility zones (DMZ), configurable columns, card categories, and built-in OIDC authentication.
 
-![Kanban Board Mockup](docs/images/kanban_board_mockup.png)
+![Kanban Board Mockup](docs/images/kanban-dmz_board.png)
 
 ## Overview
 
