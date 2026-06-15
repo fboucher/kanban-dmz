@@ -1,10 +1,11 @@
 # Kanban DMZ
 
-[![.NET 10](https://img.shields.io/badge/.NET-10-512bd4?logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
-[![Test Status](https://github.com/fboucher/kanban-dmz/actions/workflows/test.yml/badge.svg)](https://github.com/fboucher/kanban-dmz/actions/workflows/test.yml)
+[![Build main](https://github.com/fboucher/kanban-dmz/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/fboucher/kanban-dmz/actions/workflows/test.yml?query=branch%3Amain)
+[![Build dev](https://github.com/fboucher/kanban-dmz/actions/workflows/test.yml/badge.svg?branch=dev)](https://github.com/fboucher/kanban-dmz/actions/workflows/test.yml?query=branch%3Adev)
 [![Docker Hub Version](https://img.shields.io/docker/v/fboucher/kanban-dmz-web?logo=docker&logoColor=white)](https://hub.docker.com/repository/docker/fboucher/kanban-dmz-web)
-[![.NET Aspire](https://img.shields.io/badge/.NET%20Aspire-Enabled-512bd4?logo=dotnet&logoColor=white)](https://learn.microsoft.com/en-us/dotnet/aspire/)
 
+[![.NET 10](https://img.shields.io/badge/.NET-10-512bd4?logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
+[![.NET Aspire](https://img.shields.io/badge/.NET%20Aspire-Enabled-512bd4?logo=dotnet&logoColor=white)](https://learn.microsoft.com/en-us/dotnet/aspire/)
 [![Data API Builder](https://img.shields.io/badge/Data%20API%20Builder-DAB-0078d4?logo=microsoft&logoColor=white)](https://learn.microsoft.com/en-us/azure/data-api-builder/)
 [![UI: Fluent UI Blazor](https://img.shields.io/badge/UI-Fluent%20UI%20Blazor-0078d4?logo=microsoft&logoColor=white)](https://www.fluentui-blazor.net/)
 [![Auth: Keycloak](https://img.shields.io/badge/Auth-Keycloak-008bb9?logo=keycloak&logoColor=white)](https://www.keycloak.org/)
