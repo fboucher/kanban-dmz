@@ -1,7 +1,7 @@
 # Kanban DMZ
 
-[![Build main](https://github.com/fboucher/kanban-dmz/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/fboucher/kanban-dmz/actions/workflows/test.yml?query=branch%3Amain)
-[![Build dev](https://github.com/fboucher/kanban-dmz/actions/workflows/test.yml/badge.svg?branch=dev)](https://github.com/fboucher/kanban-dmz/actions/workflows/test.yml?query=branch%3Adev)
+[![Build main](https://img.shields.io/github/actions/workflow/status/fboucher/kanban-dmz/test.yml?branch=main&label=build%20(main)&logo=github)](https://github.com/fboucher/kanban-dmz/actions/workflows/test.yml?query=branch%3Amain)
+[![Build dev](https://img.shields.io/github/actions/workflow/status/fboucher/kanban-dmz/test.yml?branch=dev&label=build%20(dev)&logo=github)](https://github.com/fboucher/kanban-dmz/actions/workflows/test.yml?query=branch%3Adev)
 [![Docker Hub Version](https://img.shields.io/docker/v/fboucher/kanban-dmz-web?logo=docker&logoColor=white)](https://hub.docker.com/repository/docker/fboucher/kanban-dmz-web)
 
 [![.NET 10](https://img.shields.io/badge/.NET-10-512bd4?logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
