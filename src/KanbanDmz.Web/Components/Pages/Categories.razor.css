@@ -165,36 +165,6 @@
 }
 
 /* Category Badge Styling (aligned with board classes) */
-.category-pill-display {
-    display: inline-block;
-    padding: 0.25rem 0.75rem;
-    border-radius: 9999px;
-    font-size: 0.85rem;
-    font-weight: 600;
-    letter-spacing: 0.025em;
-    text-transform: uppercase;
-}
-
-.badge-bug {
-    background-color: rgba(239, 68, 68, 0.15);
-    color: #ef4444;
-}
-
-.badge-feature {
-    background-color: rgba(59, 130, 246, 0.15);
-    color: #3b82f6;
-}
-
-.badge-chore {
-    background-color: rgba(168, 85, 247, 0.15);
-    color: #a855f7;
-}
-
-/* Fallback/Unknown badge */
-[class*="badge-"] {
-    background-color: rgba(107, 114, 128, 0.15);
-    color: #9ca3af;
-}
 
 /* Animations */
 @keyframes slideDown {
