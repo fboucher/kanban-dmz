@@ -1,6 +1,14 @@
 @rendermode InteractiveServer
 @using Microsoft.AspNetCore.Components.Authorization
 
+<div class="navmenu-toggle" style="padding: 4px 8px; display: flex; align-items: center; justify-content: @(Expanded ? "flex-start" : "center"); height: 40px;">
+    <FluentButton Appearance="ButtonAppearance.Subtle"
+                  OnClick="ToggleExpanded"
+                  IconStart="@(new Icons.Regular.Size20.Navigation())"
+                  Title="@(Expanded ? "Collapse Menu" : "Expand Menu")"
+                  Style="@(Expanded ? "width: 100%; justify-content: flex-start; padding-left: 16px; height: 40px;" : "width: 100%; justify-content: center; height: 40px;")" />
+</div>
+
 <FluentNav Width="100%">
     <FluentNavItem Href="/" Match="NavLinkMatch.All" IconRest="@(new Icons.Regular.Size20.Home())" IconActive="@(new Icons.Filled.Size20.Home())" Tooltip="Home">
         @if (Expanded)
@@ -32,5 +40,12 @@
 
     [Parameter]
     public EventCallback<bool> ExpandedChanged { get; set; }
+
+    private async Task ToggleExpanded()
+    {
+        Expanded = !Expanded;
+        await ExpandedChanged.InvokeAsync(Expanded);
+    }
 }
+
 
