@@ -140,6 +140,38 @@ public class CardCrudTests
     }
 
     [Fact]
+    public async Task UpdateCardColumnAsync_SendsPatchRequest_ReturnsTrue()
+    {
+        // Arrange
+        var fakeHandler = new FakeHttpMessageHandler();
+        var httpClient = new HttpClient(fakeHandler) { BaseAddress = new Uri("http://fake-api/") };
+        var service = new KanbanService(httpClient, NullLogger<KanbanService>.Instance);
+
+        var cardId = Guid.NewGuid();
+        var columnId = Guid.NewGuid();
+
+        fakeHandler.ResponseFunc = (req) =>
+        {
+            if (req.Method == HttpMethod.Patch && req.RequestUri!.AbsolutePath == $"/Card/id/{cardId}")
+            {
+                return new HttpResponseMessage(HttpStatusCode.OK);
+            }
+            return new HttpResponseMessage(HttpStatusCode.NotFound);
+        };
+
+        // Act
+        var result = await service.UpdateCardColumnAsync(cardId, columnId);
+
+        // Assert
+        Assert.True(result);
+        Assert.Single(fakeHandler.Requests);
+        
+        var request = fakeHandler.Requests[0];
+        Assert.Equal(HttpMethod.Patch, request.Method);
+        Assert.Equal($"/Card/id/{cardId}", request.RequestUri!.AbsolutePath);
+    }
+
+    [Fact]
     public async Task DeleteCardAsync_SendsDeleteRequest_ReturnsTrue()
     {
         // Arrange
