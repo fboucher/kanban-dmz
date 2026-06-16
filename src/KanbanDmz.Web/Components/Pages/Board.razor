@@ -65,8 +65,22 @@
                         <FluentDropZone TItem="CardDetailDto" Id="@col.Id.ToString()" Droppable="_isAuthenticated" Draggable="false" Class="column-cards" Style="min-height: 150px; flex: 1; display: flex; flex-direction: column; gap: 0.85rem; width: 100%;">
                             @foreach (var card in col.Cards)
                             {
-                                <FluentDropZone TItem="CardDetailDto" Item="card" Draggable="_isAuthenticated" Droppable="false">
-                                    <FluentCard Class="@($"kanban-card {(_isAuthenticated ? "clickable-card" : "")}")" @onclick="@(() => OnCardClicked(card))">
+                                <FluentCard Class="@($"kanban-card {(_isAuthenticated ? "clickable-card" : "")}")">
+                                    <div class="card-header-bar" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; border-bottom: 1px dashed var(--neutral-stroke-divider-rest); padding-bottom: 4px;">
+                                        @if (_isAuthenticated)
+                                        {
+                                            <FluentDropZone TItem="CardDetailDto" Item="card" Draggable="true" Droppable="false" Style="cursor: grab; display: inline-flex; align-items: center; justify-content: center; padding: 2px 6px; border-radius: 4px; background: var(--neutral-fill-input-rest); border: 1px solid var(--neutral-stroke-rest);" Title="Drag this handle to move the card">
+                                                <FluentIcon Value="@(new Icons.Regular.Size16.ReOrder())" Color="Color.Default" />
+                                                <span style="font-size: 0.75rem; margin-left: 4px; color: var(--neutral-foreground-hint); font-weight: 500;">Drag Handle</span>
+                                            </FluentDropZone>
+                                        }
+                                        else
+                                        {
+                                            <span style="font-size: 0.75rem; color: var(--neutral-foreground-hint); font-weight: 500;">Card Details</span>
+                                        }
+                                    </div>
+
+                                    <div @onclick="@(() => OnCardClicked(card))" style="cursor: @(_isAuthenticated ? "pointer" : "default");">
                                         <h4 class="card-title">@card.Title</h4>
 
                                         @if (!string.IsNullOrWhiteSpace(card.PublicDescription))
@@ -98,48 +112,48 @@
                                                 </div>
                                             }
                                         </div>
+                                    </div>
 
-                                        <div class="card-footer">
-                                            @if (!string.IsNullOrWhiteSpace(card.AssignedTo))
-                                            {
-                                                <div class="assignee-group">
-                                                    <span class="assignee-avatar" title="Assigned to @card.AssignedTo">@GetInitials(card.AssignedTo)</span>
-                                                    <span>@card.AssignedTo</span>
-                                                </div>
-                                            }
-                                            else
-                                            {
-                                                <div class="assignee-group">
-                                                    <span class="assignee-unassigned">Unassigned</span>
-                                                </div>
-                                            }
-                                            @if (_isAuthenticated)
-                                            {
-                                                <span @onclick:stopPropagation="true">
-                                                    <FluentButton Appearance="ButtonAppearance.Subtle"
-                                                                  OnClick="@(() => ToggleVisibility(card.Id))"
-                                                                  Title="@(card.IsPublic ? "Make Private" : "Make Public")"
-                                                                  aria-label="@(card.IsPublic ? "Make Private" : "Make Public")">
-                                                        @if (card.IsPublic)
-                                                        {
-                                                            <FluentIcon Value="@(new Icons.Regular.Size16.Eye())" Color="Color.Default" />
-                                                        }
-                                                        else
-                                                        {
-                                                            <FluentIcon Value="@(new Icons.Regular.Size16.EyeOff())" Color="Color.Primary" />
-                                                        }
-                                                    </FluentButton>
-                                                </span>
-                                            }
-                                            else
-                                            {
-                                                <span class="card-public-indicator" title="Visible to everyone">
-                                                    <FluentIcon Value="@(new Icons.Regular.Size16.Eye())" Color="Color.Default" />
-                                                </span>
-                                            }
-                                        </div>
-                                    </FluentCard>
-                                </FluentDropZone>
+                                    <div class="card-footer">
+                                        @if (!string.IsNullOrWhiteSpace(card.AssignedTo))
+                                        {
+                                            <div class="assignee-group">
+                                                <span class="assignee-avatar" title="Assigned to @card.AssignedTo">@GetInitials(card.AssignedTo)</span>
+                                                <span>@card.AssignedTo</span>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <div class="assignee-group">
+                                                <span class="assignee-unassigned">Unassigned</span>
+                                            </div>
+                                        }
+                                        @if (_isAuthenticated)
+                                        {
+                                            <span @onclick:stopPropagation="true">
+                                                <FluentButton Appearance="ButtonAppearance.Subtle"
+                                                              OnClick="@(() => ToggleVisibility(card.Id))"
+                                                              Title="@(card.IsPublic ? "Make Private" : "Make Public")"
+                                                              aria-label="@(card.IsPublic ? "Make Private" : "Make Public")">
+                                                    @if (card.IsPublic)
+                                                    {
+                                                        <FluentIcon Value="@(new Icons.Regular.Size16.Eye())" Color="Color.Default" />
+                                                    }
+                                                    else
+                                                    {
+                                                        <FluentIcon Value="@(new Icons.Regular.Size16.EyeOff())" Color="Color.Primary" />
+                                                    }
+                                                </FluentButton>
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="card-public-indicator" title="Visible to everyone">
+                                                <FluentIcon Value="@(new Icons.Regular.Size16.Eye())" Color="Color.Default" />
+                                            </span>
+                                        }
+                                    </div>
+                                </FluentCard>
                             }
                         </FluentDropZone>
                     </div>
