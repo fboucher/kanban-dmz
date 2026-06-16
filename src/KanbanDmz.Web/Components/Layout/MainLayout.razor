@@ -45,8 +45,8 @@
         </FluentStack>
     </FluentLayoutItem>
 
-    <FluentLayoutItem Area="@LayoutArea.Navigation" Width="250px">
-        <NavMenu />
+    <FluentLayoutItem Area="@LayoutArea.Navigation" Width="@(_menuExpanded ? "250px" : "60px")">
+        <NavMenu @bind-Expanded="_menuExpanded" @bind-Expanded:after="StateHasChanged" />
     </FluentLayoutItem>
 
     <FluentLayoutItem Area="@LayoutArea.Content" Padding="@Padding.All3">

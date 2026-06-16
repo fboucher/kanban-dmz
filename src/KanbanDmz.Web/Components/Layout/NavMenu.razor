@@ -2,17 +2,35 @@
 @using Microsoft.AspNetCore.Components.Authorization
 
 <FluentNav Width="100%">
-    <FluentNavItem Href="/" Match="NavLinkMatch.All" IconRest="@(new Icons.Regular.Size20.Home())" IconActive="@(new Icons.Filled.Size20.Home())">
-        Home
+    <FluentNavItem Href="/" Match="NavLinkMatch.All" IconRest="@(new Icons.Regular.Size20.Home())" IconActive="@(new Icons.Filled.Size20.Home())" Tooltip="Home">
+        @if (Expanded)
+        {
+            <span>Home</span>
+        }
     </FluentNavItem>
-    <FluentNavItem Href="/board" Match="NavLinkMatch.All" IconRest="@(new Icons.Regular.Size20.Board())" IconActive="@(new Icons.Filled.Size20.Board())">
-        Kanban Board
+    <FluentNavItem Href="/board" Match="NavLinkMatch.All" IconRest="@(new Icons.Regular.Size20.Board())" IconActive="@(new Icons.Filled.Size20.Board())" Tooltip="Kanban Board">
+        @if (Expanded)
+        {
+            <span>Kanban Board</span>
+        }
     </FluentNavItem>
     <AuthorizeView>
         <Authorized>
-            <FluentNavItem Href="/categories" Match="NavLinkMatch.All" IconRest="@(new Icons.Regular.Size20.Tag())" IconActive="@(new Icons.Filled.Size20.Tag())">
-                Categories
+            <FluentNavItem Href="/categories" Match="NavLinkMatch.All" IconRest="@(new Icons.Regular.Size20.Tag())" IconActive="@(new Icons.Filled.Size20.Tag())" Tooltip="Categories">
+                @if (Expanded)
+                {
+                    <span>Categories</span>
+                }
             </FluentNavItem>
         </Authorized>
     </AuthorizeView>
 </FluentNav>
+
+@code {
+    [Parameter]
+    public bool Expanded { get; set; } = true;
+
+    [Parameter]
+    public EventCallback<bool> ExpandedChanged { get; set; }
+}
+
