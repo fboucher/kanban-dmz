@@ -100,7 +100,12 @@
         new() { Id = "synthwave84", Name = "SynthWave '84", BrandColor = "#f92aad", Mode = ThemeMode.Dark }
     };
 
-    private AppTheme _selectedTheme = new() { Id = "system", Name = "System Default", Mode = ThemeMode.System };
+    private AppTheme _selectedTheme = default!;
+
+    protected override void OnInitialized()
+    {
+        _selectedTheme = _themes[0];
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
