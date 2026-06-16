@@ -84,7 +84,7 @@
                                 }
 
                                 <div class="card-meta-row">
-                                    <span class="category-badge @GetCategoryClass(card.CategoryName)">@card.CategoryName</span>
+                                    <FluentBadge Color="@GetCategoryColor(card.CategoryName)" Appearance="BadgeAppearance.Tint">@card.CategoryName</FluentBadge>
                                     
                                     @if (card.Tags != null && card.Tags.Any())
                                     {
@@ -400,14 +400,14 @@
         await LoadBoardAsync();
     }
 
-    private string GetCategoryClass(string categoryName)
+    private BadgeColor GetCategoryColor(string categoryName)
     {
         return categoryName.ToLowerInvariant() switch
         {
-            "bug" => "badge-bug",
-            "feature" => "badge-feature",
-            "chore" => "badge-chore",
-            _ => "badge-unknown"
+            "bug" => BadgeColor.Danger,
+            "feature" => BadgeColor.Brand,
+            "chore" => BadgeColor.Warning,
+            _ => BadgeColor.Subtle
         };
     }
 

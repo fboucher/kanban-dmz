@@ -176,31 +176,6 @@
     margin-bottom: 0.75rem;
 }
 
-.category-badge {
-    font-size: 0.7rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    padding: 0.15rem 0.5rem;
-    border-radius: 6px;
-    color: #ffffff;
-    letter-spacing: 0.05em;
-}
-
-.badge-bug {
-    background-color: #ef4444; /* bug red */
-}
-
-.badge-feature {
-    background-color: #3b82f6; /* feature blue */
-}
-
-.badge-chore {
-    background-color: #f59e0b; /* chore amber */
-}
-
-.badge-unknown {
-    background-color: #6b7280; /* gray fallback */
-}
 
 /* Tag Pills */
 .tags-list {
