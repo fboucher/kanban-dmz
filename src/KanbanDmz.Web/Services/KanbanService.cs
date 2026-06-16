@@ -228,6 +228,34 @@ public class KanbanService
         }
     }
 
+    public async Task<bool> UpdateCardColumnAsync(Guid cardId, Guid columnId)
+    {
+        EnsureAuthHeaders();
+        try
+        {
+            var payload = new
+            {
+                columnid = columnId
+            };
+            var response = await _httpClient.PatchAsJsonAsync($"Card/id/{cardId}", payload);
+            if (response.IsSuccessStatusCode)
+            {
+                return true;
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                _logger.LogError("Error updating card column via DAB. Status: {Status}, Error: {Error}", response.StatusCode, error);
+                return false;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating card column via DAB.");
+            throw;
+        }
+    }
+
     public async Task<bool> DeleteCardAsync(Guid cardId)
     {
         EnsureAuthHeaders();

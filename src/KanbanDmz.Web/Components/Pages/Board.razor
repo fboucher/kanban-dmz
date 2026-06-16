@@ -45,103 +45,121 @@
             }
         </div>
 
-        <div class="board-canvas">
-            @foreach (var col in _board.Columns)
-            {
-                <div class="board-column">
-                    <div class="column-header">
-                        <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" Style="width: 100%;">
-                            <h3 class="column-title">@col.Name</h3>
-                            <span class="column-count-badge">@col.Cards.Count</span>
-                            <FluentSpacer />
-                            @if (_isAuthenticated)
+        <FluentDragContainer TItem="CardDetailDto" OnDropEnd="HandleDropEnd">
+            <div class="board-canvas">
+                @foreach (var col in _board.Columns)
+                {
+                    <div class="board-column">
+                        <div class="column-header">
+                            <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" Style="width: 100%;">
+                                <h3 class="column-title">@col.Name</h3>
+                                <span class="column-count-badge">@col.Cards.Count</span>
+                                <FluentSpacer />
+                                @if (_isAuthenticated)
+                                {
+                                    <FluentButton Appearance="ButtonAppearance.Subtle" IconEnd="@(new Icons.Regular.Size16.Add())" OnClick="@(() => OpenCreateCardDialog(col.Id))" Title="Add Card to Column" aria-label="Add Card to Column" />
+                                }
+                            </FluentStack>
+                        </div>
+
+                        <FluentDropZone TItem="CardDetailDto" Id="@col.Id.ToString()" Droppable="_isAuthenticated" Draggable="false" Class="column-cards" Style="min-height: 150px; flex: 1; display: flex; flex-direction: column; gap: 0.85rem; width: 100%;">
+                            @foreach (var card in col.Cards)
                             {
-                                <FluentButton Appearance="ButtonAppearance.Subtle" IconEnd="@(new Icons.Regular.Size16.Add())" OnClick="@(() => OpenCreateCardDialog(col.Id))" Title="Add Card to Column" aria-label="Add Card to Column" />
-                            }
-                        </FluentStack>
-                    </div>
-
-                    <div class="column-cards">
-                        @foreach (var card in col.Cards)
-                        {
-                            <FluentCard Class="@($"kanban-card {(_isAuthenticated ? "clickable-card" : "")}")" @onclick="@(() => OnCardClicked(card))">
-                                <h4 class="card-title">@card.Title</h4>
-
-                                @if (!string.IsNullOrWhiteSpace(card.PublicDescription))
-                                {
-                                    <p class="card-description">@card.PublicDescription</p>
-                                }
-                                else
-                                {
-                                    <p class="card-description card-description-placeholder">No description</p>
-                                }
-
-                                @if (_isAuthenticated && !string.IsNullOrWhiteSpace(card.PrivateDescription))
-                                {
-                                    <div class="card-private-description">
-                                        <span class="private-badge">Private</span>@card.PrivateDescription
+                                <FluentCard Class="@($"kanban-card {(_isAuthenticated ? "clickable-card" : "")}")">
+                                    <div class="card-header-bar" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; border-bottom: 1px dashed var(--neutral-stroke-divider-rest); padding-bottom: 4px;">
+                                        @if (_isAuthenticated)
+                                        {
+                                            <FluentDropZone TItem="CardDetailDto" Item="card" Draggable="true" Droppable="false" Style="cursor: grab; display: inline-flex; align-items: center; justify-content: center; padding: 2px 6px; border-radius: 4px; background: var(--neutral-fill-input-rest); border: 1px solid var(--neutral-stroke-rest);" Title="Drag this handle to move the card">
+                                                <FluentIcon Value="@(new Icons.Regular.Size16.ReOrder())" Color="Color.Default" />
+                                                <span style="font-size: 0.75rem; margin-left: 4px; color: var(--neutral-foreground-hint); font-weight: 500;">Drag Handle</span>
+                                            </FluentDropZone>
+                                        }
+                                        else
+                                        {
+                                            <span style="font-size: 0.75rem; color: var(--neutral-foreground-hint); font-weight: 500;">Card Details</span>
+                                        }
                                     </div>
-                                }
 
-                                <div class="card-meta-row">
-                                    <FluentBadge Color="@GetCategoryColor(card.CategoryName)" Appearance="BadgeAppearance.Tint">@card.CategoryName</FluentBadge>
-                                    
-                                    @if (card.Tags != null && card.Tags.Any())
-                                    {
-                                        <div class="tags-list">
-                                            @foreach (var tag in card.Tags)
+                                    <div @onclick="@(() => OnCardClicked(card))" style="cursor: @(_isAuthenticated ? "pointer" : "default");">
+                                        <h4 class="card-title">@card.Title</h4>
+
+                                        @if (!string.IsNullOrWhiteSpace(card.PublicDescription))
+                                        {
+                                            <p class="card-description">@card.PublicDescription</p>
+                                        }
+                                        else
+                                        {
+                                            <p class="card-description card-description-placeholder">No description</p>
+                                        }
+
+                                        @if (_isAuthenticated && !string.IsNullOrWhiteSpace(card.PrivateDescription))
+                                        {
+                                            <div class="card-private-description">
+                                                <span class="private-badge">Private</span>@card.PrivateDescription
+                                            </div>
+                                        }
+
+                                        <div class="card-meta-row">
+                                            <FluentBadge Color="@GetCategoryColor(card.CategoryName)" Appearance="BadgeAppearance.Tint">@card.CategoryName</FluentBadge>
+                                            
+                                            @if (card.Tags != null && card.Tags.Any())
                                             {
-                                                <span class="tag-pill">#@tag</span>
+                                                <div class="tags-list">
+                                                    @foreach (var tag in card.Tags)
+                                                    {
+                                                        <span class="tag-pill">#@tag</span>
+                                                    }
+                                                </div>
                                             }
                                         </div>
-                                    }
-                                </div>
+                                    </div>
 
-                                <div class="card-footer">
-                                    @if (!string.IsNullOrWhiteSpace(card.AssignedTo))
-                                    {
-                                        <div class="assignee-group">
-                                            <span class="assignee-avatar" title="Assigned to @card.AssignedTo">@GetInitials(card.AssignedTo)</span>
-                                            <span>@card.AssignedTo</span>
-                                        </div>
-                                    }
-                                    else
-                                    {
-                                        <div class="assignee-group">
-                                            <span class="assignee-unassigned">Unassigned</span>
-                                        </div>
-                                    }
-                                    @if (_isAuthenticated)
-                                    {
-                                        <span @onclick:stopPropagation="true">
-                                            <FluentButton Appearance="ButtonAppearance.Subtle"
-                                                          OnClick="@(() => ToggleVisibility(card.Id))"
-                                                          Title="@(card.IsPublic ? "Make Private" : "Make Public")"
-                                                          aria-label="@(card.IsPublic ? "Make Private" : "Make Public")">
-                                                @if (card.IsPublic)
-                                                {
-                                                    <FluentIcon Value="@(new Icons.Regular.Size16.Eye())" Color="Color.Default" />
-                                                }
-                                                else
-                                                {
-                                                    <FluentIcon Value="@(new Icons.Regular.Size16.EyeOff())" Color="Color.Primary" />
-                                                }
-                                            </FluentButton>
-                                        </span>
-                                    }
-                                    else
-                                    {
-                                        <span class="card-public-indicator" title="Visible to everyone">
-                                            <FluentIcon Value="@(new Icons.Regular.Size16.Eye())" Color="Color.Default" />
-                                        </span>
-                                    }
-                                </div>
-                            </FluentCard>
-                        }
+                                    <div class="card-footer">
+                                        @if (!string.IsNullOrWhiteSpace(card.AssignedTo))
+                                        {
+                                            <div class="assignee-group">
+                                                <span class="assignee-avatar" title="Assigned to @card.AssignedTo">@GetInitials(card.AssignedTo)</span>
+                                                <span>@card.AssignedTo</span>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <div class="assignee-group">
+                                                <span class="assignee-unassigned">Unassigned</span>
+                                            </div>
+                                        }
+                                        @if (_isAuthenticated)
+                                        {
+                                            <span @onclick:stopPropagation="true">
+                                                <FluentButton Appearance="ButtonAppearance.Subtle"
+                                                              OnClick="@(() => ToggleVisibility(card.Id))"
+                                                              Title="@(card.IsPublic ? "Make Private" : "Make Public")"
+                                                              aria-label="@(card.IsPublic ? "Make Private" : "Make Public")">
+                                                    @if (card.IsPublic)
+                                                    {
+                                                        <FluentIcon Value="@(new Icons.Regular.Size16.Eye())" Color="Color.Default" />
+                                                    }
+                                                    else
+                                                    {
+                                                        <FluentIcon Value="@(new Icons.Regular.Size16.EyeOff())" Color="Color.Primary" />
+                                                    }
+                                                </FluentButton>
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="card-public-indicator" title="Visible to everyone">
+                                                <FluentIcon Value="@(new Icons.Regular.Size16.Eye())" Color="Color.Default" />
+                                            </span>
+                                        }
+                                    </div>
+                                </FluentCard>
+                            }
+                        </FluentDropZone>
                     </div>
-                </div>
-            }
-        </div>
+                }
+            </div>
+        </FluentDragContainer>
     }
 </div>
 
@@ -398,6 +416,32 @@
     private async Task ReloadBoard()
     {
         await LoadBoardAsync();
+    }
+
+    private async Task HandleDropEnd(FluentDragEventArgs<CardDetailDto> args)
+    {
+        if (args.Source?.Item == null || args.Target == null) return;
+
+        var card = args.Source.Item;
+        if (Guid.TryParse(args.Target.Id, out var targetColumnId))
+        {
+            try
+            {
+                var success = await KanbanService.UpdateCardColumnAsync(card.Id, targetColumnId);
+                if (success)
+                {
+                    await LoadBoardAsync();
+                }
+                else
+                {
+                    _errorMessage = "Failed to update card column.";
+                }
+            }
+            catch (Exception ex)
+            {
+                _errorMessage = $"An error occurred during drag and drop: {ex.Message}";
+            }
+        }
     }
 
     private BadgeColor GetCategoryColor(string categoryName)
