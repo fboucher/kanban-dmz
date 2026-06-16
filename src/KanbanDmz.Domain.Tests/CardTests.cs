@@ -13,6 +13,7 @@ public class CardTests
 
         // Assert
         Assert.True(card.IsPublic);
+        Assert.Null(card.ImageUrl);
         Assert.Equal(Guid.Empty, card.Id);
         Assert.Equal(Guid.Empty, card.BoardId);
         Assert.Equal(Guid.Empty, card.ColumnId);
@@ -40,6 +41,7 @@ public class CardTests
         var expectedAssignedTo = "bob@company.com";
         var expectedIsPublic = false;
         var expectedCreatedAt = DateTime.UtcNow;
+        var expectedImageUrl = "http://example.com/image.png";
 
         // Act
         card.Id = expectedId;
@@ -53,6 +55,7 @@ public class CardTests
         card.AssignedTo = expectedAssignedTo;
         card.IsPublic = expectedIsPublic;
         card.CreatedAt = expectedCreatedAt;
+        card.ImageUrl = expectedImageUrl;
 
         // Assert
         Assert.Equal(expectedId, card.Id);
@@ -66,5 +69,6 @@ public class CardTests
         Assert.Equal(expectedAssignedTo, card.AssignedTo);
         Assert.Equal(expectedIsPublic, card.IsPublic);
         Assert.Equal(expectedCreatedAt, card.CreatedAt);
+        Assert.Equal(expectedImageUrl, card.ImageUrl);
     }
 }

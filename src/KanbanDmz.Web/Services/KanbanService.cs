@@ -172,7 +172,8 @@ public class KanbanService
                 categoryid = card.CategoryId,
                 createdby = card.CreatedBy,
                 assignedto = card.AssignedTo,
-                ispublic = card.IsPublic
+                ispublic = card.IsPublic,
+                imageurl = card.ImageUrl
             };
             var response = await _httpClient.PostAsJsonAsync("Card", payload);
             if (response.IsSuccessStatusCode)
@@ -207,7 +208,8 @@ public class KanbanService
                 privatedescription = card.PrivateDescription,
                 categoryid = card.CategoryId,
                 assignedto = card.AssignedTo,
-                ispublic = card.IsPublic
+                ispublic = card.IsPublic,
+                imageurl = card.ImageUrl
             };
             var response = await _httpClient.PatchAsJsonAsync($"Card/id/{card.Id}", payload);
             if (response.IsSuccessStatusCode)

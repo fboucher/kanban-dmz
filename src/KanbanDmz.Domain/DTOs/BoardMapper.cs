@@ -46,7 +46,8 @@ public static class BoardMapper
                         CategoryName = categoriesMap.TryGetValue(card.CategoryId, out var catName) ? catName : "Uncategorized",
                         Tags = tagsGrouped.TryGetValue(card.Id, out var cardTags) ? cardTags : new List<string>(),
                         AssignedTo = card.AssignedTo,
-                        IsPublic = card.IsPublic
+                        IsPublic = card.IsPublic,
+                        ImageUrl = card.ImageUrl
                     })
                     .ToList()
             })

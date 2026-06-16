@@ -89,7 +89,8 @@ public class BoardMapperTests
                 PublicDescription = "Public info 1",
                 CategoryId = 2,
                 AssignedTo = "Frank",
-                IsPublic = true
+                IsPublic = true,
+                ImageUrl = "http://example.com/image.png"
             },
             new()
             {
@@ -100,7 +101,8 @@ public class BoardMapperTests
                 PublicDescription = "Public info 2",
                 CategoryId = 99, // Unknown category
                 AssignedTo = "",
-                IsPublic = true
+                IsPublic = true,
+                ImageUrl = null
             }
         };
 
@@ -134,6 +136,7 @@ public class BoardMapperTests
         Assert.Contains("tag-b", card1.Tags);
         Assert.Equal("Frank", card1.AssignedTo);
         Assert.True(card1.IsPublic);
+        Assert.Equal("http://example.com/image.png", card1.ImageUrl);
 
         var card2 = column.Cards.First(c => c.Id == cardId2);
         Assert.Equal("Second Card", card2.Title);
@@ -141,5 +144,6 @@ public class BoardMapperTests
         Assert.Single(card2.Tags);
         Assert.Contains("tag-c", card2.Tags);
         Assert.Equal("", card2.AssignedTo);
+        Assert.Null(card2.ImageUrl);
     }
 }

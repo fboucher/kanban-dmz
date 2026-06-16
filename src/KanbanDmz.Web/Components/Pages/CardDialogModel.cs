@@ -15,6 +15,7 @@ public class CardDialogModel
     public int CategoryId { get; set; }
     public string AssignedTo { get; set; } = string.Empty;
     public bool IsPublic { get; set; } = true;
+    public string? ImageUrl { get; set; }
     public string Tags { get; set; } = string.Empty;
     public bool IsEdit { get; set; }
     public bool IsDelete { get; set; }

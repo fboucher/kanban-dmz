@@ -68,7 +68,7 @@
             {
               "action": "read",
               "fields": {
-                "include": ["id", "boardid", "columnid", "title", "publicdescription", "categoryid", "createdat", "createdby", "assignedto", "ispublic"]
+                "include": ["id", "boardid", "columnid", "title", "publicdescription", "categoryid", "createdat", "createdby", "assignedto", "ispublic", "imageurl"]
               },
               "policy": {
                 "database": "@item.ispublic eq true"

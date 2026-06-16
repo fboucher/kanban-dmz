@@ -28,6 +28,7 @@ public class CardDetailDto
     public List<string> Tags { get; set; } = [];
     public string AssignedTo { get; set; } = string.Empty;
     public bool IsPublic { get; set; }
+    public string? ImageUrl { get; set; }
 }
 
 public class DabResponse<T>

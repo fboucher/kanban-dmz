@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "skills": {
+    "grill-with-docs": {
+      "source": "fboucher/skills",
+      "sourceType": "github",
+      "skillPath": "grill-with-docs/SKILL.md",
+      "computedHash": "7c212cee6a823b956aaec7dff2a846814fe9986caa2e62313734010c7bd3db70"
+    },
+    "tdd": {
+      "source": "fboucher/skills",
+      "sourceType": "github",
+      "skillPath": "tdd/SKILL.md",
+      "computedHash": "fb0c9c770f1abe2c7f1f595dae594e6e0f1250193dc863fa162db52991e7b4dc"
+    },
+    "triage": {
+      "source": "fboucher/skills",
+      "sourceType": "github",
+      "skillPath": "triage/SKILL.md",
+      "computedHash": "56ff15b41bbebfa4cb329d96150d9b297c1d919ce30784d883b8755b4bfd8e7e"
+    }
+  }
+}

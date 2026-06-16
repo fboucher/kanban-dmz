@@ -78,6 +78,12 @@
                                     </div>
 
                                     <div @onclick="@(() => OnCardClicked(card))" style="cursor: @(_isAuthenticated ? "pointer" : "default");">
+                                        @if (!string.IsNullOrWhiteSpace(card.ImageUrl))
+                                        {
+                                            <div class="card-image-wrapper" style="width: 100%; max-height: 150px; overflow: hidden; border-radius: 4px; margin-bottom: 8px; display: flex; justify-content: center; align-items: center; background-color: var(--neutral-fill-secondary-rest);">
+                                                <img src="@card.ImageUrl" style="max-width: 100%; max-height: 150px; object-fit: cover;" alt="Card Image" />
+                                            </div>
+                                        }
                                         <h4 class="card-title">@card.Title</h4>
 
                                         @if (!string.IsNullOrWhiteSpace(card.PublicDescription))
@@ -251,6 +257,7 @@
                 CategoryId = categoryId,
                 AssignedTo = cardDto.AssignedTo,
                 IsPublic = cardDto.IsPublic,
+                ImageUrl = cardDto.ImageUrl,
                 Tags = string.Join(", ", cardDto.Tags),
                 IsEdit = true,
                 Columns = GetColumnList(),
@@ -285,7 +292,8 @@
                         PrivateDescription = resultModel.PrivateDescription,
                         CategoryId = resultModel.CategoryId,
                         AssignedTo = resultModel.AssignedTo,
-                        IsPublic = resultModel.IsPublic
+                        IsPublic = resultModel.IsPublic,
+                        ImageUrl = resultModel.ImageUrl
                     };
 
                     var success = await KanbanService.UpdateCardAsync(card);
@@ -342,6 +350,7 @@
                     CategoryId = resultModel.CategoryId,
                     AssignedTo = resultModel.AssignedTo,
                     IsPublic = resultModel.IsPublic,
+                    ImageUrl = resultModel.ImageUrl,
                     CreatedBy = createdBy ?? "Unknown"
                 };
 
