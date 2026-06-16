@@ -20,12 +20,11 @@
             <div class="auth-section" style="display: flex; align-items: center; gap: 8px;">
                 <span style="font-size: 0.8rem; font-weight: 600; color: var(--neutral-foreground-hint);">Theme:</span>
                 <FluentSelect TOption="AppTheme"
-                              TValue="string"
+                              TValue="AppTheme"
                               Items="@_themes"
                               OptionText="@(t => t.Name)"
-                              OptionValue="@(t => t.Id)"
-                              SelectedOption="@_selectedTheme"
-                              SelectedOptionChanged="@(async (AppTheme t) => await OnThemeChanged(t))"
+                              Value="@_selectedTheme"
+                              ValueChanged="OnThemeChanged"
                               Style="min-width: 150px; margin-right: 8px;" />
                 <AuthorizeView>
                     <Authorized>
