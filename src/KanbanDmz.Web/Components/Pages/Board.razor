@@ -9,7 +9,7 @@
 
 <PageTitle>Kanban Board</PageTitle>
 
-<div class="board-container">
+<div class="board-container" style="@(string.IsNullOrWhiteSpace(_board?.BackgroundColor) ? "" : $"background-color: {_board.BackgroundColor};")">
     @if (_loading)
     {
         <div class="state-container">
@@ -33,6 +33,9 @@
             </div>
             @if (_isAuthenticated)
             {
+                <FluentButton Appearance="ButtonAppearance.Outline" IconStart="@(new Icons.Regular.Size16.Settings())" OnClick="OpenBoardSettingsDialog" Style="margin-right: 8px;">
+                    Board Settings
+                </FluentButton>
                 <FluentButton Appearance="ButtonAppearance.Outline" IconStart="@(new Icons.Regular.Size16.Settings())" OnClick="OpenColumnManagerDialog" Style="margin-right: 8px;">
                     Manage Columns
                 </FluentButton>
@@ -46,7 +49,7 @@
             <div class="board-canvas">
                 @foreach (var col in _board.Columns)
                 {
-                    <div class="board-column">
+                    <div class="board-column" style="@(string.IsNullOrWhiteSpace(col.Color) ? "" : $"border-top: 4px solid {col.Color};")">
                         <div class="column-header">
                             <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" Style="width: 100%;">
                                 <h3 class="column-title">@col.Name</h3>
@@ -62,7 +65,7 @@
                         <FluentDropZone TItem="CardDetailDto" Id="@col.Id.ToString()" Droppable="_isAuthenticated" Draggable="false" Class="column-cards" Style="min-height: 150px; flex: 1; display: flex; flex-direction: column; gap: 0.85rem; width: 100%;">
                             @foreach (var card in col.Cards)
                             {
-                                <FluentCard Class="@($"kanban-card {(_isAuthenticated ? "clickable-card" : "")}")">
+                                <FluentCard Class="@($"kanban-card {(_isAuthenticated ? "clickable-card" : "")}")" Style="@GetCardStyle(card)">
                                     <div class="card-header-bar" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; border-bottom: 1px dashed var(--neutral-stroke-divider-rest); padding-bottom: 4px;">
                                         @if (_isAuthenticated)
                                         {
@@ -103,14 +106,14 @@
                                         }
 
                                         <div class="card-meta-row">
-                                            <FluentBadge Color="@GetCategoryColor(card.CategoryName)" Appearance="BadgeAppearance.Tint">@card.CategoryName</FluentBadge>
+                                            <FluentBadge Style="@(string.IsNullOrWhiteSpace(card.CategoryColor) ? "" : $"--badge-fill-color: {card.CategoryColor}; color: {GetContrastColor(card.CategoryColor)};")" Color="@GetCategoryColor(card.CategoryName)" Appearance="BadgeAppearance.Tint">@card.CategoryName</FluentBadge>
                                             
                                             @if (card.Tags != null && card.Tags.Any())
                                             {
                                                 <div class="tags-list">
                                                     @foreach (var tag in card.Tags)
                                                     {
-                                                        <span class="tag-pill">#@tag</span>
+                                                        <span class="tag-pill" style="@(string.IsNullOrWhiteSpace(tag.Color) ? "" : $"background-color: {tag.Color}; color: {GetContrastColor(tag.Color)}; border-color: {AdjustColorBrightness(tag.Color, -0.15)};")">#@tag.Name</span>
                                                     }
                                                 </div>
                                             }
@@ -258,7 +261,8 @@
                 AssignedTo = cardDto.AssignedTo,
                 IsPublic = cardDto.IsPublic,
                 ImageUrl = cardDto.ImageUrl,
-                Tags = string.Join(", ", cardDto.Tags),
+                Tags = string.Join(", ", cardDto.Tags.Select(t => t.Name)),
+                Color = cardDto.Color,
                 IsEdit = true,
                 Columns = GetColumnList(),
                 Categories = categories
@@ -293,7 +297,8 @@
                         CategoryId = resultModel.CategoryId,
                         AssignedTo = resultModel.AssignedTo,
                         IsPublic = resultModel.IsPublic,
-                        ImageUrl = resultModel.ImageUrl
+                        ImageUrl = resultModel.ImageUrl,
+                        Color = resultModel.Color
                     };
 
                     var success = await KanbanService.UpdateCardAsync(card);
@@ -330,7 +335,8 @@
                 IsEdit = false,
                 Columns = GetColumnList(),
                 Categories = categories,
-                IsPublic = true
+                IsPublic = true,
+                Color = null
             };
 
             var dialogResult = await ShowCardDialogAsync(model);
@@ -351,6 +357,7 @@
                     AssignedTo = resultModel.AssignedTo,
                     IsPublic = resultModel.IsPublic,
                     ImageUrl = resultModel.ImageUrl,
+                    Color = resultModel.Color,
                     CreatedBy = createdBy ?? "Unknown"
                 };
 
@@ -467,5 +474,127 @@
         var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
         if (parts.Length == 1) return parts[0][0].ToString().ToUpperInvariant();
         return (parts[0][0].ToString() + parts[^1][0].ToString()).ToUpperInvariant();
+    }
+
+    private string GetCardStyle(CardDetailDto card)
+    {
+        string? hexColor = null;
+        if (!string.IsNullOrWhiteSpace(card.Color))
+        {
+            hexColor = card.Color;
+        }
+        else if (!string.IsNullOrWhiteSpace(card.CategoryColor))
+        {
+            hexColor = card.CategoryColor;
+        }
+
+        if (!string.IsNullOrWhiteSpace(hexColor))
+        {
+            string textCol = GetContrastColor(hexColor);
+            string borderCol = AdjustColorBrightness(hexColor, -0.15);
+            return $"background-color: {hexColor}; border-color: {borderCol}; --neutral-foreground-rest: {textCol}; --neutral-foreground-hint: {textCol}; --neutral-stroke-divider-rest: {borderCol};";
+        }
+        return "";
+    }
+
+    private string GetContrastColor(string hex)
+    {
+        if (string.IsNullOrWhiteSpace(hex)) return "var(--neutral-foreground-rest)";
+        try
+        {
+            hex = hex.TrimStart('#');
+            if (hex.Length == 3)
+            {
+                hex = new string(new[] { hex[0], hex[0], hex[1], hex[1], hex[2], hex[2] });
+            }
+            if (hex.Length != 6) return "var(--neutral-foreground-rest)";
+            int r = Convert.ToInt32(hex.Substring(0, 2), 16);
+            int g = Convert.ToInt32(hex.Substring(2, 2), 16);
+            int b = Convert.ToInt32(hex.Substring(4, 2), 16);
+            double yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000.0;
+            return (yiq >= 128) ? "#1a1a1a" : "#ffffff";
+        }
+        catch
+        {
+            return "var(--neutral-foreground-rest)";
+        }
+    }
+
+    private string AdjustColorBrightness(string hex, double factor)
+    {
+        if (string.IsNullOrWhiteSpace(hex)) return "var(--neutral-stroke-card-rest)";
+        try
+        {
+            hex = hex.TrimStart('#');
+            if (hex.Length == 3)
+            {
+                hex = new string(new[] { hex[0], hex[0], hex[1], hex[1], hex[2], hex[2] });
+            }
+            if (hex.Length != 6) return hex;
+            int r = Convert.ToInt32(hex.Substring(0, 2), 16);
+            int g = Convert.ToInt32(hex.Substring(2, 2), 16);
+            int b = Convert.ToInt32(hex.Substring(4, 2), 16);
+
+            if (factor < 0)
+            {
+                factor = 1 + factor;
+                r = (int)(r * factor);
+                g = (int)(g * factor);
+                b = (int)(b * factor);
+            }
+            else
+            {
+                r = (int)(r + ((255 - r) * factor));
+                g = (int)(g + ((255 - g) * factor));
+                b = (int)(b + ((255 - b) * factor));
+            }
+
+            r = Math.Clamp(r, 0, 255);
+            g = Math.Clamp(g, 0, 255);
+            b = Math.Clamp(b, 0, 255);
+
+            return $"#{r:X2}{g:X2}{b:X2}";
+        }
+        catch
+        {
+            return hex;
+        }
+    }
+
+    private async Task OpenBoardSettingsDialog()
+    {
+        if (!_isAuthenticated || _board == null) return;
+
+        try
+        {
+            var boardCopy = new KanbanDmz.Domain.Board
+            {
+                Id = _board.Id,
+                Name = _board.Name,
+                IsPublic = _board.IsPublic,
+                BackgroundColor = _board.BackgroundColor
+            };
+
+            var options = new DialogOptions
+            {
+                Width = "400px",
+                Modal = true,
+                Parameters = new Dictionary<string, object?>
+                {
+                    { "Board", boardCopy }
+                }
+            };
+
+            var result = await DialogService.ShowDialogAsync<BoardSettingsDialog>(options);
+
+            if (!result.Cancelled && result.Value is true)
+            {
+                await LoadBoardAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"An error occurred: {ex.Message}";
+        }
     }
 }

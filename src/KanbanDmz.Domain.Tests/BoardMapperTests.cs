@@ -132,8 +132,8 @@ public class BoardMapperTests
         Assert.Equal("Public info 1", card1.PublicDescription);
         Assert.Equal("Feature", card1.CategoryName);
         Assert.Equal(2, card1.Tags.Count);
-        Assert.Contains("tag-a", card1.Tags);
-        Assert.Contains("tag-b", card1.Tags);
+        Assert.Contains("tag-a", card1.Tags.Select(t => t.Name));
+        Assert.Contains("tag-b", card1.Tags.Select(t => t.Name));
         Assert.Equal("Frank", card1.AssignedTo);
         Assert.True(card1.IsPublic);
         Assert.Equal("http://example.com/image.png", card1.ImageUrl);
@@ -142,7 +142,7 @@ public class BoardMapperTests
         Assert.Equal("Second Card", card2.Title);
         Assert.Equal("Uncategorized", card2.CategoryName);
         Assert.Single(card2.Tags);
-        Assert.Contains("tag-c", card2.Tags);
+        Assert.Contains("tag-c", card2.Tags.Select(t => t.Name));
         Assert.Equal("", card2.AssignedTo);
         Assert.Null(card2.ImageUrl);
     }

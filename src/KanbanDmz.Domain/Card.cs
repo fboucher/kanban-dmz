@@ -14,4 +14,5 @@ public class Card
     public string AssignedTo { get; set; } = string.Empty;
     public bool IsPublic { get; set; } = true;
     public string? ImageUrl { get; set; }
+    public string? Color { get; set; }
 }

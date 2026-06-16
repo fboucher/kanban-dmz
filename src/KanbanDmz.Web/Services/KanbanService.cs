@@ -89,13 +89,15 @@ public class KanbanService
             var cardsResponse = await _httpClient.GetFromJsonAsync<DabResponse<Card>>($"Card?$filter=boardid eq {boardId}");
             var categoriesResponse = await _httpClient.GetFromJsonAsync<DabResponse<Category>>("Category");
             var tagsResponse = await _httpClient.GetFromJsonAsync<DabResponse<CardTag>>("CardTag");
+            var allTagsResponse = await _httpClient.GetFromJsonAsync<DabResponse<Tag>>("Tag");
 
             var boardDetail = BoardMapper.MapToDetail(
                 board,
                 columnsResponse?.Value,
                 cardsResponse?.Value,
                 categoriesResponse?.Value,
-                tagsResponse?.Value
+                tagsResponse?.Value,
+                allTagsResponse?.Value
             );
 
             return boardDetail;
@@ -173,7 +175,8 @@ public class KanbanService
                 createdby = card.CreatedBy,
                 assignedto = card.AssignedTo,
                 ispublic = card.IsPublic,
-                imageurl = card.ImageUrl
+                imageurl = card.ImageUrl,
+                color = card.Color
             };
             var response = await _httpClient.PostAsJsonAsync("Card", payload);
             if (response.IsSuccessStatusCode)
@@ -209,7 +212,8 @@ public class KanbanService
                 categoryid = card.CategoryId,
                 assignedto = card.AssignedTo,
                 ispublic = card.IsPublic,
-                imageurl = card.ImageUrl
+                imageurl = card.ImageUrl,
+                color = card.Color
             };
             var response = await _httpClient.PatchAsJsonAsync($"Card/id/{card.Id}", payload);
             if (response.IsSuccessStatusCode)
@@ -303,18 +307,38 @@ public class KanbanService
                 }
             }
 
+            var allTagsResponse = await _httpClient.GetFromJsonAsync<DabResponse<Tag>>("Tag");
+            var allExistingTags = allTagsResponse?.Value ?? new List<Tag>();
+
             foreach (var tag in tagsToAdd)
             {
+                var existingDbTag = allExistingTags.FirstOrDefault(t => string.Equals(t.Name, tag, StringComparison.OrdinalIgnoreCase));
+                string tagToInsert = tag;
+
+                if (existingDbTag == null)
+                {
+                    var createTagResponse = await _httpClient.PostAsJsonAsync("Tag", new { name = tag, color = "#E0E0E0" });
+                    if (!createTagResponse.IsSuccessStatusCode)
+                    {
+                        var error = await createTagResponse.Content.ReadAsStringAsync();
+                        _logger.LogWarning("Failed to pre-create tag {Tag}. Status: {Status}, Error: {Error}", tag, createTagResponse.StatusCode, error);
+                    }
+                }
+                else
+                {
+                    tagToInsert = existingDbTag.Name;
+                }
+
                 var payload = new
                 {
                     cardid = cardId,
-                    tag = tag
+                    tag = tagToInsert
                 };
                 var response = await _httpClient.PostAsJsonAsync("CardTag", payload);
                 if (!response.IsSuccessStatusCode)
                 {
                     var error = await response.Content.ReadAsStringAsync();
-                    _logger.LogWarning("Failed to add tag {Tag} to card {CardId}. Status: {Status}, Error: {Error}", tag, cardId, response.StatusCode, error);
+                    _logger.LogWarning("Failed to add tag {Tag} to card {CardId}. Status: {Status}, Error: {Error}", tagToInsert, cardId, response.StatusCode, error);
                 }
             }
         }
@@ -325,12 +349,12 @@ public class KanbanService
         }
     }
 
-    public async Task<Category?> CreateCategoryAsync(string name)
+    public async Task<Category?> CreateCategoryAsync(string name, string? color = null)
     {
         EnsureAuthHeaders();
         try
         {
-            var payload = new { name = name };
+            var payload = new { name = name, color = color };
             var response = await _httpClient.PostAsJsonAsync("Category", payload);
             if (response.IsSuccessStatusCode)
             {
@@ -356,7 +380,7 @@ public class KanbanService
         EnsureAuthHeaders();
         try
         {
-            var payload = new { name = category.Name };
+            var payload = new { name = category.Name, color = category.Color };
             var response = await _httpClient.PatchAsJsonAsync($"Category/id/{category.Id}", payload);
             if (response.IsSuccessStatusCode)
             {
@@ -454,7 +478,8 @@ public class KanbanService
             {
                 boardid = column.BoardId,
                 name = column.Name,
-                sortorder = column.SortOrder
+                sortorder = column.SortOrder,
+                color = column.Color
             };
             var response = await _httpClient.PostAsJsonAsync("Column", payload);
             if (response.IsSuccessStatusCode)
@@ -484,7 +509,8 @@ public class KanbanService
             var payload = new
             {
                 name = column.Name,
-                sortorder = column.SortOrder
+                sortorder = column.SortOrder,
+                color = column.Color
             };
             var response = await _httpClient.PatchAsJsonAsync($"Column/id/{column.Id}", payload);
             if (response.IsSuccessStatusCode)
@@ -525,6 +551,126 @@ public class KanbanService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error deleting column via DAB.");
+            throw;
+        }
+    }
+
+    public async Task<bool> UpdateBoardAsync(Board board)
+    {
+        EnsureAuthHeaders();
+        try
+        {
+            var payload = new
+            {
+                name = board.Name,
+                ispublic = board.IsPublic,
+                backgroundcolor = board.BackgroundColor
+            };
+            var response = await _httpClient.PatchAsJsonAsync($"Board/id/{board.Id}", payload);
+            if (response.IsSuccessStatusCode)
+            {
+                return true;
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                _logger.LogError("Error updating board via DAB. Status: {Status}, Error: {Error}", response.StatusCode, error);
+                return false;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating board via DAB.");
+            throw;
+        }
+    }
+
+    public async Task<List<Tag>> GetTagsAsync()
+    {
+        EnsureAuthHeaders();
+        try
+        {
+            var response = await _httpClient.GetFromJsonAsync<DabResponse<Tag>>("Tag");
+            return response?.Value ?? [];
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching tags from DAB.");
+            throw;
+        }
+    }
+
+    public async Task<bool> UpdateTagColorAsync(string name, string color)
+    {
+        EnsureAuthHeaders();
+        try
+        {
+            var payload = new { color = color };
+            var response = await _httpClient.PatchAsJsonAsync($"Tag/name/{Uri.EscapeDataString(name)}", payload);
+            if (response.IsSuccessStatusCode)
+            {
+                return true;
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                _logger.LogError("Error updating tag color via DAB. Status: {Status}, Error: {Error}", response.StatusCode, error);
+                return false;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating tag color for Tag: {TagName} via DAB.", name);
+            throw;
+        }
+    }
+
+    public async Task<Tag?> CreateTagAsync(string name, string color)
+    {
+        EnsureAuthHeaders();
+        try
+        {
+            var payload = new { name = name, color = color };
+            var response = await _httpClient.PostAsJsonAsync("Tag", payload);
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<DabResponse<Tag>>();
+                return result?.Value.FirstOrDefault();
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                _logger.LogError("Error creating tag via DAB. Status: {Status}, Error: {Error}", response.StatusCode, error);
+                return null;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating tag via DAB.");
+            throw;
+        }
+    }
+
+    public async Task<bool> DeleteTagAsync(string name)
+    {
+        EnsureAuthHeaders();
+        try
+        {
+            var response = await _httpClient.DeleteAsync($"Tag/name/{Uri.EscapeDataString(name)}");
+            if (response.IsSuccessStatusCode)
+            {
+                return true;
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                _logger.LogError("Error deleting tag via DAB. Status: {Status}, Error: {Error}", response.StatusCode, error);
+                return false;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting tag via DAB.");
             throw;
         }
     }

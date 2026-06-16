@@ -232,6 +232,22 @@ public class CardCrudTests
                     Content = new StringContent(JsonSerializer.Serialize(responseObj), System.Text.Encoding.UTF8, "application/json")
                 };
             }
+            // Get tags lookup (contains both)
+            if (req.Method == HttpMethod.Get && req.RequestUri!.AbsolutePath == "/Tag")
+            {
+                var responseObj = new DabResponse<Tag>
+                {
+                    Value = new List<Tag>
+                    {
+                        new() { Name = "tag2" },
+                        new() { Name = "tag3" }
+                    }
+                };
+                return new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent(JsonSerializer.Serialize(responseObj), System.Text.Encoding.UTF8, "application/json")
+                };
+            }
             // Delete tag1
             if (req.Method == HttpMethod.Delete && req.RequestUri!.AbsolutePath == $"/CardTag/cardid/{cardId}/tag/tag1")
             {
@@ -249,8 +265,8 @@ public class CardCrudTests
         await service.UpdateCardTagsAsync(cardId, newTags);
 
         // Assert
-        // Requests should include: GET tags, DELETE tag1, POST tag3
-        Assert.Equal(3, fakeHandler.Requests.Count);
+        // Requests should include: GET CardTag, DELETE tag1, GET Tag, POST CardTag
+        Assert.Equal(4, fakeHandler.Requests.Count);
         
         var getReq = fakeHandler.Requests[0];
         Assert.Equal(HttpMethod.Get, getReq.Method);
@@ -260,8 +276,80 @@ public class CardCrudTests
         Assert.Equal(HttpMethod.Delete, deleteReq.Method);
         Assert.Equal($"/CardTag/cardid/{cardId}/tag/tag1", deleteReq.RequestUri!.AbsolutePath);
 
-        var postReq = fakeHandler.Requests[2];
+        var getTagsReq = fakeHandler.Requests[2];
+        Assert.Equal(HttpMethod.Get, getTagsReq.Method);
+        Assert.Equal("/Tag", getTagsReq.RequestUri!.AbsolutePath);
+
+        var postReq = fakeHandler.Requests[3];
         Assert.Equal(HttpMethod.Post, postReq.Method);
         Assert.Equal("/CardTag", postReq.RequestUri!.AbsolutePath);
+    }
+
+    [Fact]
+    public async Task UpdateCardTagsAsync_PreCreatesTag_WhenTagDoesNotExist()
+    {
+        // Arrange
+        var fakeHandler = new FakeHttpMessageHandler();
+        var httpClient = new HttpClient(fakeHandler) { BaseAddress = new Uri("http://fake-api/") };
+        var service = new KanbanService(httpClient, NullLogger<KanbanService>.Instance);
+
+        var cardId = Guid.NewGuid();
+        var existingTags = new List<CardTag>(); // Starts empty
+        var newTags = new List<string> { "newtag" };
+
+        fakeHandler.ResponseFunc = (req) =>
+        {
+            // Get existing card tags (empty)
+            if (req.Method == HttpMethod.Get && Uri.UnescapeDataString(req.RequestUri!.Query).Contains($"cardid eq {cardId}"))
+            {
+                var responseObj = new DabResponse<CardTag> { Value = existingTags };
+                return new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent(JsonSerializer.Serialize(responseObj), System.Text.Encoding.UTF8, "application/json")
+                };
+            }
+            // Get tags lookup (empty)
+            if (req.Method == HttpMethod.Get && req.RequestUri!.AbsolutePath == "/Tag")
+            {
+                var responseObj = new DabResponse<Tag> { Value = new List<Tag>() };
+                return new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent(JsonSerializer.Serialize(responseObj), System.Text.Encoding.UTF8, "application/json")
+                };
+            }
+            // POST to create Tag
+            if (req.Method == HttpMethod.Post && req.RequestUri!.AbsolutePath == "/Tag")
+            {
+                return new HttpResponseMessage(HttpStatusCode.Created);
+            }
+            // POST to associate CardTag
+            if (req.Method == HttpMethod.Post && req.RequestUri!.AbsolutePath == "/CardTag")
+            {
+                return new HttpResponseMessage(HttpStatusCode.Created);
+            }
+            return new HttpResponseMessage(HttpStatusCode.NotFound);
+        };
+
+        // Act
+        await service.UpdateCardTagsAsync(cardId, newTags);
+
+        // Assert
+        // Requests: 1. GET CardTag, 2. GET Tag, 3. POST Tag, 4. POST CardTag
+        Assert.Equal(4, fakeHandler.Requests.Count);
+        
+        var getCardTags = fakeHandler.Requests[0];
+        Assert.Equal(HttpMethod.Get, getCardTags.Method);
+        
+        var getTags = fakeHandler.Requests[1];
+        Assert.Equal(HttpMethod.Get, getTags.Method);
+        Assert.Equal("/Tag", getTags.RequestUri!.AbsolutePath);
+
+        var postTag = fakeHandler.Requests[2];
+        Assert.Equal(HttpMethod.Post, postTag.Method);
+        Assert.Equal("/Tag", postTag.RequestUri!.AbsolutePath);
+
+        var postCardTag = fakeHandler.Requests[3];
+        Assert.Equal(HttpMethod.Post, postCardTag.Method);
+        Assert.Equal("/CardTag", postCardTag.RequestUri!.AbsolutePath);
     }
 }

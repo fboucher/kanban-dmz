@@ -68,7 +68,7 @@
             {
               "action": "read",
               "fields": {
-                "include": ["id", "boardid", "columnid", "title", "publicdescription", "categoryid", "createdat", "createdby", "assignedto", "ispublic", "imageurl"]
+                "include": ["id", "boardid", "columnid", "title", "publicdescription", "categoryid", "createdat", "createdby", "assignedto", "ispublic", "imageurl", "color"]
               },
               "policy": {
                 "database": "@item.ispublic eq true"
@@ -98,6 +98,20 @@
     },
     "CardTag": {
       "source": "card_tag",
+      "rest": true,
+      "permissions": [
+        {
+          "role": "anonymous",
+          "actions": ["read"]
+        },
+        {
+          "role": "authenticated",
+          "actions": ["*"]
+        }
+      ]
+    },
+    "Tag": {
+      "source": "tag",
       "rest": true,
       "permissions": [
         {

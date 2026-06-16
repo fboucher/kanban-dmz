@@ -17,6 +17,7 @@ public class CardDialogModel
     public bool IsPublic { get; set; } = true;
     public string? ImageUrl { get; set; }
     public string Tags { get; set; } = string.Empty;
+    public string? Color { get; set; }
     public bool IsEdit { get; set; }
     public bool IsDelete { get; set; }
     public List<Column> Columns { get; set; } = [];

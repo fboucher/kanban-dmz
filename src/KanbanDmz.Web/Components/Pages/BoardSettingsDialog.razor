@@ -1,0 +1,75 @@
+@using Microsoft.FluentUI.AspNetCore.Components
+@using KanbanDmz.Domain
+@using KanbanDmz.Domain.DTOs
+@using KanbanDmz.Web.Services
+@inject KanbanService KanbanService
+
+<FluentDialogBody>
+    <TitleTemplate>
+        <FluentStack VerticalAlignment="VerticalAlignment.Center" Gap="8px">
+            <FluentIcon Value="@(new Icons.Regular.Size24.Settings())" Color="Color.Primary" />
+            <FluentLabel Typo="Typography.PaneHeader">Board Settings</FluentLabel>
+        </FluentStack>
+    </TitleTemplate>
+    <ChildContent>
+        <FluentStack Orientation="Orientation.Vertical" Gap="15px" Style="width: 100%;">
+            @if (_errorMessage != null)
+            {
+                <div style="background-color: #fee2e2; color: #ef4444; border: 1px solid #fca5a5; padding: 10px; border-radius: 4px; font-weight: 500; font-size: 0.9rem; width: 100%; box-sizing: border-box;">
+                    <span>@_errorMessage</span>
+                </div>
+            }
+
+            <FluentTextInput @bind-Value="Board.Name"
+                             Label="Board Name"
+                             Required="true"
+                             Style="width: 100%;" />
+
+            <FluentCheckbox @bind-Value="Board.IsPublic"
+                            Label="Visible to Public" />
+
+            <FluentColorPicker @bind-Value="Board.BackgroundColor" Label="Board Background Color" />
+        </FluentStack>
+    </ChildContent>
+    <ActionTemplate>
+        <FluentButton Appearance="ButtonAppearance.Outline" OnClick="CancelAsync">Cancel</FluentButton>
+        <FluentButton Appearance="ButtonAppearance.Primary" OnClick="SaveAsync" Disabled="@(string.IsNullOrWhiteSpace(Board.Name))">Save</FluentButton>
+    </ActionTemplate>
+</FluentDialogBody>
+
+@code {
+    [Parameter]
+    public KanbanDmz.Domain.Board Board { get; set; } = default!;
+
+    [CascadingParameter]
+    public IDialogInstance DialogInstance { get; set; } = default!;
+
+    private string? _errorMessage;
+
+    private async Task SaveAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Board.Name)) return;
+
+        try
+        {
+            var success = await KanbanService.UpdateBoardAsync(Board);
+            if (success)
+            {
+                await DialogInstance.CloseAsync(true);
+            }
+            else
+            {
+                _errorMessage = "Failed to update board settings.";
+            }
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Error: {ex.Message}";
+        }
+    }
+
+    private async Task CancelAsync()
+    {
+        await DialogInstance.CancelAsync();
+    }
+}

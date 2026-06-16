@@ -6,4 +6,5 @@ public class Column
     public Guid BoardId { get; set; }
     public string Name { get; set; } = string.Empty;
     public int SortOrder { get; set; }
+    public string? Color { get; set; }
 }

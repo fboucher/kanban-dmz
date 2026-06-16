@@ -63,8 +63,11 @@
 
 @using System.IO
 
-        <FluentCheckbox @bind-Value="Content.IsPublic"
-                        Label="Visible to Public" />
+        <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" Gap="15px" Style="width: 100%;">
+            <FluentCheckbox @bind-Value="Content.IsPublic"
+                            Label="Visible to Public" />
+            <FluentColorPicker @bind-Value="Content.Color" Label="Card Color" Style="margin-top: -10px;" />
+        </FluentStack>
 
         <div style="border: 1px dashed var(--neutral-stroke-rest); padding: 12px; border-radius: 4px; width: 100%; box-sizing: border-box;">
             <FluentLabel Typo="Typography.Body" Style="font-weight: 600; margin-bottom: 8px;">Card Image</FluentLabel>
