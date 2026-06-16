@@ -3,6 +3,7 @@
 @using Microsoft.AspNetCore.Components.Authorization
 @inject NavigationManager Navigation
 @inject IThemeService ThemeService
+@inject IJSRuntime JSRuntime
 
 <FluentLayout>
     <FluentLayoutItem Area="@LayoutArea.Header">
@@ -18,11 +19,16 @@
             
             <FluentSpacer />
             
-            <div class="auth-section">
-                <FluentButton Appearance="ButtonAppearance.Subtle" 
-                               IconStart="@(_mode == ThemeMode.Dark ? new Icons.Regular.Size16.WeatherSunny() : new Icons.Regular.Size16.WeatherMoon())"
-                               OnClick="ToggleTheme" 
-                               Title="Toggle Light/Dark Theme" />
+            <div class="auth-section" style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 0.8rem; font-weight: 600; color: var(--neutral-foreground-hint);">Theme:</span>
+                <FluentSelect TOption="AppTheme"
+                              TValue="string"
+                              Items="@_themes"
+                              OptionText="@(t => t.Name)"
+                              OptionValue="@(t => t.Id)"
+                              SelectedOption="@_selectedTheme"
+                              SelectedOptionChanged="@(async (AppTheme t) => await OnThemeChanged(t))"
+                              Style="min-width: 150px; margin-right: 8px;" />
                 <AuthorizeView>
                     <Authorized>
                         <div class="user-info">
@@ -77,14 +83,81 @@
     private FluentLayoutHamburger? _hamburger;
     private bool _menuExpanded = true;
 
+    private class AppTheme
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string? BrandColor { get; set; }
+        public ThemeMode Mode { get; set; }
+    }
+
+    private List<AppTheme> _themes = new()
+    {
+        new() { Id = "system", Name = "System Default", Mode = ThemeMode.System },
+        new() { Id = "light", Name = "Light Mode", Mode = ThemeMode.Light },
+        new() { Id = "dark", Name = "Dark Mode", Mode = ThemeMode.Dark },
+        new() { Id = "tokyo-night", Name = "Tokyo Night", BrandColor = "#7aa2f7", Mode = ThemeMode.Dark },
+        new() { Id = "catppuccin-dark", Name = "Catppuccin Dark", BrandColor = "#c6a0f6", Mode = ThemeMode.Dark },
+        new() { Id = "catppuccin-light", Name = "Catppuccin Light", BrandColor = "#8839ef", Mode = ThemeMode.Light },
+        new() { Id = "solarized-dark", Name = "Solarized Dark", BrandColor = "#268bd2", Mode = ThemeMode.Dark },
+        new() { Id = "solarized-light", Name = "Solarized Light", BrandColor = "#268bd2", Mode = ThemeMode.Light },
+        new() { Id = "synthwave84", Name = "SynthWave '84", BrandColor = "#f92aad", Mode = ThemeMode.Dark }
+    };
+
+    private AppTheme _selectedTheme = new() { Id = "system", Name = "System Default", Mode = ThemeMode.System };
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
+            var savedThemeId = await JSRuntime.InvokeAsync<string?>("localStorage.getItem", "kanban-dmz:theme-id");
+            if (!string.IsNullOrEmpty(savedThemeId))
+            {
+                var theme = _themes.FirstOrDefault(t => t.Id == savedThemeId);
+                if (theme != null)
+                {
+                    await OnThemeChanged(theme);
+                    StateHasChanged();
+                    return;
+                }
+            }
+
             var isDark = await ThemeService.IsDarkModeAsync();
             _mode = isDark ? ThemeMode.Dark : ThemeMode.Light;
             StateHasChanged();
         }
+    }
+
+    private async Task OnThemeChanged(AppTheme theme)
+    {
+        _selectedTheme = theme;
+        _mode = theme.Mode;
+
+        await JSRuntime.InvokeVoidAsync("localStorage.setItem", "kanban-dmz:theme-id", theme.Id);
+
+        if (!string.IsNullOrEmpty(theme.BrandColor))
+        {
+            var settings = new ThemeSettings
+            {
+                Color = theme.BrandColor,
+                Mode = theme.Mode
+            };
+            await ThemeService.SetThemeAsync(settings);
+        }
+        else
+        {
+            await ThemeService.SetThemeAsync(theme.Mode);
+        }
+
+        await JSRuntime.InvokeVoidAsync("document.body.setAttribute", "data-theme-name", theme.Id);
+        
+        var resolvedMode = theme.Mode;
+        if (resolvedMode == ThemeMode.System)
+        {
+            var isSystemDark = await ThemeService.IsSystemDarkAsync();
+            resolvedMode = isSystemDark ? ThemeMode.Dark : ThemeMode.Light;
+        }
+        await JSRuntime.InvokeVoidAsync("document.body.setAttribute", "data-theme", resolvedMode == ThemeMode.Dark ? "dark" : "light");
     }
 
     private void OnHamburgerOpened(LayoutHamburgerEventArgs e)
@@ -107,12 +180,6 @@
                 _menuExpanded = true;
             }
         }
-    }
-
-    private async Task ToggleTheme()
-    {
-        var isDark = await ThemeService.SwitchThemeAsync();
-        _mode = isDark ? ThemeMode.Dark : ThemeMode.Light;
     }
 
     private void Login()

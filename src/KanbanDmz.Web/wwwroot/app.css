@@ -171,3 +171,77 @@ h1:focus {
         right: unset;
     }
 }
+
+/* Custom Themes Overrides */
+body[data-theme-name="tokyo-night"] {
+    background-color: #1a1b26 !important;
+    --neutral-fill-layer-rest: #1a1b26;
+    --neutral-fill-card-rest: #1f2335;
+    --neutral-fill-layer-card-rest: #1f2335;
+    --neutral-fill-secondary-rest: #24283b;
+    --neutral-fill-input-rest: #24283b;
+    --neutral-stroke-rest: #3b4261;
+    --neutral-stroke-divider-rest: #3b4261;
+    --neutral-foreground-rest: #c0caf5;
+    --neutral-foreground-hint: #9ece6a;
+}
+body[data-theme-name="catppuccin-dark"] {
+    background-color: #1e1e2e !important;
+    --neutral-fill-layer-rest: #1e1e2e;
+    --neutral-fill-card-rest: #181825;
+    --neutral-fill-layer-card-rest: #181825;
+    --neutral-fill-secondary-rest: #252538;
+    --neutral-fill-input-rest: #252538;
+    --neutral-stroke-rest: #313244;
+    --neutral-stroke-divider-rest: #313244;
+    --neutral-foreground-rest: #cdd6f4;
+    --neutral-foreground-hint: #a6e3a1;
+}
+body[data-theme-name="catppuccin-light"] {
+    background-color: #eff1f5 !important;
+    --neutral-fill-layer-rest: #eff1f5;
+    --neutral-fill-card-rest: #e6e9ef;
+    --neutral-fill-layer-card-rest: #e6e9ef;
+    --neutral-fill-secondary-rest: #ccd0da;
+    --neutral-fill-input-rest: #ccd0da;
+    --neutral-stroke-rest: #bcc0cc;
+    --neutral-stroke-divider-rest: #bcc0cc;
+    --neutral-foreground-rest: #4c4f69;
+    --neutral-foreground-hint: #40a02b;
+}
+body[data-theme-name="solarized-dark"] {
+    background-color: #002b36 !important;
+    --neutral-fill-layer-rest: #002b36;
+    --neutral-fill-card-rest: #073642;
+    --neutral-fill-layer-card-rest: #073642;
+    --neutral-fill-secondary-rest: #073642;
+    --neutral-fill-input-rest: #073642;
+    --neutral-stroke-rest: #586e75;
+    --neutral-stroke-divider-rest: #586e75;
+    --neutral-foreground-rest: #839496;
+    --neutral-foreground-hint: #859900;
+}
+body[data-theme-name="solarized-light"] {
+    background-color: #fdf6e3 !important;
+    --neutral-fill-layer-rest: #fdf6e3;
+    --neutral-fill-card-rest: #eee8d5;
+    --neutral-fill-layer-card-rest: #eee8d5;
+    --neutral-fill-secondary-rest: #eee8d5;
+    --neutral-fill-input-rest: #eee8d5;
+    --neutral-stroke-rest: #93a1a1;
+    --neutral-stroke-divider-rest: #93a1a1;
+    --neutral-foreground-rest: #657b83;
+    --neutral-foreground-hint: #859900;
+}
+body[data-theme-name="synthwave84"] {
+    background-color: #2b213a !important;
+    --neutral-fill-layer-rest: #2b213a;
+    --neutral-fill-card-rest: #241b2f;
+    --neutral-fill-layer-card-rest: #241b2f;
+    --neutral-fill-secondary-rest: #372948;
+    --neutral-fill-input-rest: #372948;
+    --neutral-stroke-rest: #46345e;
+    --neutral-stroke-divider-rest: #46345e;
+    --neutral-foreground-rest: #f0e8f5;
+    --neutral-foreground-hint: #fe4450;
+}
