@@ -8,9 +8,7 @@
 <FluentLayout>
     <FluentLayoutItem Area="@LayoutArea.Header">
         <FluentStack VerticalAlignment="VerticalAlignment.Center">
-            <FluentLayoutHamburger @ref="_hamburger" OnOpened="OnHamburgerOpened" />
-            
-            <div class="brand" @onclick="ToggleMenuAsync" style="cursor: pointer; user-select: none;" title="Toggle Navigation Menu">
+            <div class="brand" @onclick="NavigateToHome" style="cursor: pointer; user-select: none;" title="Home">
                 <span class="brand-icon">
                     <FluentIcon Value="@(new Icons.Filled.Size24.Board())" Color="Color.Primary" />
                 </span>
@@ -51,8 +49,8 @@
         </FluentStack>
     </FluentLayoutItem>
 
-    <FluentLayoutItem Area="@LayoutArea.Navigation" Width="250px">
-        <NavMenu />
+    <FluentLayoutItem Area="@LayoutArea.Navigation" Width="@(_menuExpanded ? "250px" : "60px")">
+        <NavMenu @bind-Expanded="_menuExpanded" @bind-Expanded:after="StateHasChanged" />
     </FluentLayoutItem>
 
     <FluentLayoutItem Area="@LayoutArea.Content" Padding="@Padding.All3">
@@ -80,7 +78,6 @@
 
 @code {
     private ThemeMode _mode = ThemeMode.System;
-    private FluentLayoutHamburger? _hamburger;
     private bool _menuExpanded = true;
 
     private class AppTheme
@@ -160,26 +157,9 @@
         await JSRuntime.InvokeVoidAsync("document.body.setAttribute", "data-theme", resolvedMode == ThemeMode.Dark ? "dark" : "light");
     }
 
-    private void OnHamburgerOpened(LayoutHamburgerEventArgs e)
+    private void NavigateToHome()
     {
-        _menuExpanded = e.Opened;
-    }
-
-    private async Task ToggleMenuAsync()
-    {
-        if (_hamburger != null)
-        {
-            if (_menuExpanded)
-            {
-                await _hamburger.HideAsync();
-                _menuExpanded = false;
-            }
-            else
-            {
-                await _hamburger.ShowAsync();
-                _menuExpanded = true;
-            }
-        }
+        Navigation.NavigateTo("/");
     }
 
     private void Login()
