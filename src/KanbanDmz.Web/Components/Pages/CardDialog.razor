@@ -61,8 +61,31 @@
                              Style="width: 100%;" />
         </FluentStack>
 
+@using System.IO
+
         <FluentCheckbox @bind-Value="Content.IsPublic"
                         Label="Visible to Public" />
+
+        <div style="border: 1px dashed var(--neutral-stroke-rest); padding: 12px; border-radius: 4px; width: 100%; box-sizing: border-box;">
+            <FluentLabel Typo="Typography.Body" Style="font-weight: 600; margin-bottom: 8px;">Card Image</FluentLabel>
+            <FluentStack Orientation="Orientation.Vertical" Gap="8px">
+                <FluentTextInput @bind-Value="Content.ImageUrl"
+                                 Label="Image URL"
+                                 Placeholder="Enter image URL or upload below..."
+                                 Style="width: 100%;" />
+                
+                <FluentInputFile Id="card-image-upload"
+                                 Mode="InputFileMode.Stream"
+                                 Multiple="false"
+                                 Accept="image/*"
+                                 OnFileUploaded="@OnFileUploadedAsync"
+                                 Style="width: 100%;">
+                    <ChildContent>
+                        <FluentLabel Typo="Typography.Body">Drag image here or click to browse</FluentLabel>
+                    </ChildContent>
+                </FluentInputFile>
+            </FluentStack>
+        </div>
 
         <FluentTextArea @bind-Value="Content.PublicDescription"
                         Label="Public Description"
@@ -128,5 +151,24 @@
     {
         Content.IsDelete = true;
         await DialogInstance.CloseAsync(Content);
+    }
+
+    private async Task OnFileUploadedAsync(FluentInputFileEventArgs e)
+    {
+        if (e.Stream is not null)
+        {
+            try
+            {
+                using var ms = new MemoryStream();
+                await e.Stream.CopyToAsync(ms);
+                var bytes = ms.ToArray();
+                var base64 = Convert.ToBase64String(bytes);
+                Content.ImageUrl = $"data:{e.ContentType};base64,{base64}";
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error reading uploaded file: " + ex.Message);
+            }
+        }
     }
 }
