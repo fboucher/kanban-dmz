@@ -1,5 +1,11 @@
 @rendermode InteractiveServer
 @using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.FluentUI.AspNetCore.Components
+@using KanbanDmz.Domain
+@using KanbanDmz.Web.Services
+@inject KanbanService KanbanService
+@inject NavigationManager NavigationManager
+@inject IDialogService DialogService
 
 <div class="navmenu-toggle" style="padding: 4px 8px; display: flex; align-items: center; justify-content: @(Expanded ? "flex-start" : "center"); height: 40px;">
     <FluentButton Appearance="ButtonAppearance.Subtle"
@@ -16,12 +22,86 @@
             <span>Home</span>
         }
     </FluentNavItem>
-    <FluentNavItem Href="/board" Match="NavLinkMatch.All" IconRest="@(new Icons.Regular.Size20.Board())" IconActive="@(new Icons.Filled.Size20.Board())" Tooltip="Kanban Board">
+
+    @if (Expanded)
+    {
+        <div style="font-weight: 600; padding: 12px 16px 4px 16px; font-size: 0.85rem; color: var(--neutral-foreground-hint); text-transform: uppercase; letter-spacing: 0.05em; display: flex; align-items: center; justify-content: space-between;">
+            <span>Boards</span>
+        </div>
+    }
+
+    @if (_loadingBoards)
+    {
+        <div style="padding: 8px 16px; display: flex; align-items: center; gap: 8px;">
+            <FluentSpinner Size="SpinnerSize.Small" />
+            @if (Expanded)
+            {
+                <span style="font-size: 0.85rem; color: var(--neutral-foreground-hint);">Loading...</span>
+            }
+        </div>
+    }
+    else
+    {
+        @foreach (var board in _boards)
+        {
+            var targetHref = $"/board/{board.Id}";
+            <FluentNavItem Href="@targetHref" Match="NavLinkMatch.All" Tooltip="@board.Name">
+                <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 8px; overflow: hidden;">
+                    <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-grow: 1;">@board.Name</span>
+                    @if (Expanded)
+                    {
+                        <AuthorizeView>
+                            <Authorized>
+                                <span style="display: flex; gap: 2px;" @onclick:stopPropagation="true">
+                                    <FluentButton Appearance="ButtonAppearance.Subtle" 
+                                                  IconStart="@(new Icons.Regular.Size16.Copy())" 
+                                                  OnClick="@(() => DuplicateBoardAsync(board))" 
+                                                  Title="Duplicate Board" 
+                                                  Style="padding: 0; width: 20px; height: 20px; min-width: 20px;" />
+                                    <FluentButton Appearance="ButtonAppearance.Subtle" 
+                                                  IconStart="@(new Icons.Regular.Size16.Delete())" 
+                                                  OnClick="@(() => ConfirmDeleteBoardAsync(board))" 
+                                                  Title="Delete Board" 
+                                                  Color="Color.Error"
+                                                  Style="padding: 0; width: 20px; height: 20px; min-width: 20px;" />
+                                </span>
+                            </Authorized>
+                        </AuthorizeView>
+                    }
+                </div>
+            </FluentNavItem>
+        }
+
         @if (Expanded)
         {
-            <span>Kanban Board</span>
+            <AuthorizeView>
+                <Authorized>
+                    @if (_showNewBoardForm)
+                    {
+                        <div style="padding: 8px 16px; display: flex; flex-direction: column; gap: 8px;">
+                            <FluentTextInput @bind-Value="_newBoardName" Placeholder="Board Name..." Required="true" Style="width: 100%;" />
+                            <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                                <FluentButton Appearance="ButtonAppearance.Outline" OnClick="@(() => _showNewBoardForm = false)">Cancel</FluentButton>
+                                <FluentButton Appearance="ButtonAppearance.Primary" OnClick="SaveNewBoardAsync" Disabled="@string.IsNullOrWhiteSpace(_newBoardName)">Create</FluentButton>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div style="padding: 8px 16px;">
+                            <FluentButton Appearance="ButtonAppearance.Outline" 
+                                          IconStart="@(new Icons.Regular.Size16.Add())" 
+                                          OnClick="@(() => _showNewBoardForm = true)" 
+                                          Style="width: 100%;">
+                                New Board
+                            </FluentButton>
+                        </div>
+                    }
+                </Authorized>
+            </AuthorizeView>
         }
-    </FluentNavItem>
+    }
+
     <AuthorizeView>
         <Authorized>
             <FluentNavItem Href="/categories" Match="NavLinkMatch.All" IconRest="@(new Icons.Regular.Size20.Tag())" IconActive="@(new Icons.Filled.Size20.Tag())" Tooltip="Categories">
@@ -41,11 +121,109 @@
     [Parameter]
     public EventCallback<bool> ExpandedChanged { get; set; }
 
+    private List<Board> _boards = [];
+    private bool _loadingBoards = true;
+
+    private bool _showNewBoardForm;
+    private string _newBoardName = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadBoardsAsync();
+    }
+
+    private async Task LoadBoardsAsync()
+    {
+        _loadingBoards = true;
+        try
+        {
+            _boards = await KanbanService.GetBoardsAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Failed to load boards: " + ex.Message);
+        }
+        finally
+        {
+            _loadingBoards = false;
+        }
+    }
+
     private async Task ToggleExpanded()
     {
         Expanded = !Expanded;
         await ExpandedChanged.InvokeAsync(Expanded);
     }
+
+    private async Task SaveNewBoardAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_newBoardName)) return;
+        try
+        {
+            var newBoard = new Board
+            {
+                Name = _newBoardName.Trim(),
+                IsPublic = true
+            };
+            var created = await KanbanService.CreateBoardAsync(newBoard);
+            if (created != null)
+            {
+                _newBoardName = "";
+                _showNewBoardForm = false;
+                await LoadBoardsAsync();
+                NavigationManager.NavigateTo($"/board/{created.Id}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Error creating board: " + ex.Message);
+        }
+    }
+
+    private async Task DuplicateBoardAsync(Board board)
+    {
+        try
+        {
+            var created = await KanbanService.DuplicateBoardAsync(board.Id);
+            if (created != null)
+            {
+                await LoadBoardsAsync();
+                NavigationManager.NavigateTo($"/board/{created.Id}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Error duplicating board: " + ex.Message);
+        }
+    }
+
+    private async Task ConfirmDeleteBoardAsync(Board board)
+    {
+        var result = await DialogService.ShowConfirmationAsync(
+            $"Are you sure you want to delete the board '{board.Name}'? This will delete all its columns and cards.",
+            "Delete Board",
+            "Delete",
+            "Cancel"
+        );
+
+        if (!result.Cancelled)
+        {
+            try
+            {
+                var success = await KanbanService.DeleteBoardAsync(board.Id);
+                if (success)
+                {
+                    await LoadBoardsAsync();
+                    if (NavigationManager.Uri.Contains(board.Id.ToString()))
+                    {
+                        NavigationManager.NavigateTo("/board");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error deleting board: " + ex.Message);
+            }
+        }
+    }
 }
-
-

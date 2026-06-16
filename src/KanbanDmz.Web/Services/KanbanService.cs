@@ -674,4 +674,115 @@ public class KanbanService
             throw;
         }
     }
+
+    public async Task<List<Board>> GetBoardsAsync()
+    {
+        EnsureAuthHeaders();
+        try
+        {
+            var response = await _httpClient.GetFromJsonAsync<DabResponse<Board>>("Board");
+            return response?.Value ?? [];
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching all boards from DAB.");
+            throw;
+        }
+    }
+
+    public async Task<bool> DeleteBoardAsync(Guid boardId)
+    {
+        EnsureAuthHeaders();
+        try
+        {
+            var response = await _httpClient.DeleteAsync($"Board/id/{boardId}");
+            if (response.IsSuccessStatusCode)
+            {
+                return true;
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                _logger.LogError("Error deleting board via DAB. Status: {Status}, Error: {Error}", response.StatusCode, error);
+                return false;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting board via DAB.");
+            throw;
+        }
+    }
+
+    public async Task<Board?> DuplicateBoardAsync(Guid boardId)
+    {
+        EnsureAuthHeaders();
+        try
+        {
+            var boardDetail = await GetBoardDetailAsync(boardId);
+            if (boardDetail == null) return null;
+
+            var newBoard = new Board
+            {
+                Name = $"Copy of {boardDetail.Name}",
+                IsPublic = boardDetail.IsPublic,
+                BackgroundColor = boardDetail.BackgroundColor
+            };
+            var createdBoard = await CreateBoardAsync(newBoard);
+            if (createdBoard == null) return null;
+
+            foreach (var col in boardDetail.Columns)
+            {
+                var newCol = new Column
+                {
+                    BoardId = createdBoard.Id,
+                    Name = col.Name,
+                    SortOrder = col.SortOrder,
+                    Color = col.Color
+                };
+                var createdCol = await CreateColumnAsync(newCol);
+                if (createdCol == null) continue;
+
+                foreach (var cardDto in col.Cards)
+                {
+                    var categories = await GetCategoriesAsync();
+                    var category = categories.FirstOrDefault(c => string.Equals(c.Name, cardDto.CategoryName, StringComparison.OrdinalIgnoreCase));
+                    int categoryId = category?.Id ?? 0;
+                    if (categoryId == 0)
+                    {
+                        categoryId = categories.FirstOrDefault()?.Id ?? 0;
+                    }
+
+                    var newCard = new Card
+                    {
+                        BoardId = createdBoard.Id,
+                        ColumnId = createdCol.Id,
+                        Title = cardDto.Title,
+                        PublicDescription = cardDto.PublicDescription,
+                        PrivateDescription = cardDto.PrivateDescription,
+                        CategoryId = categoryId,
+                        AssignedTo = cardDto.AssignedTo,
+                        IsPublic = cardDto.IsPublic,
+                        ImageUrl = cardDto.ImageUrl,
+                        Color = cardDto.Color,
+                        CreatedBy = "System"
+                    };
+                    var createdCard = await CreateCardAsync(newCard);
+                    if (createdCard == null) continue;
+
+                    if (cardDto.Tags != null && cardDto.Tags.Any())
+                    {
+                        await UpdateCardTagsAsync(createdCard.Id, cardDto.Tags.Select(t => t.Name).ToList());
+                    }
+                }
+            }
+
+            return createdBoard;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error duplicating board: {BoardId}", boardId);
+            throw;
+        }
+    }
 }

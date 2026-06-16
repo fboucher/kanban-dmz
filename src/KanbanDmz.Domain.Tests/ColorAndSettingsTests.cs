@@ -190,4 +190,65 @@ public class ColorAndSettingsTests
         var request = fakeHandler.Requests[0];
         Assert.Equal(HttpMethod.Delete, request.Method);
     }
+
+    [Fact]
+    public async Task GetBoardsAsync_SendsGetRequest_ReturnsBoardsList()
+    {
+        // Arrange
+        var fakeHandler = new FakeHttpMessageHandler();
+        var httpClient = new HttpClient(fakeHandler) { BaseAddress = new Uri("http://fake-api/") };
+        var service = new KanbanService(httpClient, NullLogger<KanbanService>.Instance);
+
+        var expectedBoards = new List<Board>
+        {
+            new() { Id = Guid.NewGuid(), Name = "Board A" }
+        };
+
+        fakeHandler.ResponseFunc = (req) =>
+        {
+            if (req.Method == HttpMethod.Get && req.RequestUri!.AbsolutePath == "/Board")
+            {
+                var responseObj = new DabResponse<Board> { Value = expectedBoards };
+                return new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent(JsonSerializer.Serialize(responseObj), System.Text.Encoding.UTF8, "application/json")
+                };
+            }
+            return new HttpResponseMessage(HttpStatusCode.NotFound);
+        };
+
+        // Act
+        var result = await service.GetBoardsAsync();
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Single(result);
+        Assert.Equal("Board A", result[0].Name);
+    }
+
+    [Fact]
+    public async Task DeleteBoardAsync_SendsDeleteRequest_ReturnsTrue()
+    {
+        // Arrange
+        var fakeHandler = new FakeHttpMessageHandler();
+        var httpClient = new HttpClient(fakeHandler) { BaseAddress = new Uri("http://fake-api/") };
+        var service = new KanbanService(httpClient, NullLogger<KanbanService>.Instance);
+
+        var boardId = Guid.NewGuid();
+
+        fakeHandler.ResponseFunc = (req) =>
+        {
+            if (req.Method == HttpMethod.Delete && req.RequestUri!.AbsolutePath == $"/Board/id/{boardId}")
+            {
+                return new HttpResponseMessage(HttpStatusCode.OK);
+            }
+            return new HttpResponseMessage(HttpStatusCode.NotFound);
+        };
+
+        // Act
+        var result = await service.DeleteBoardAsync(boardId);
+
+        // Assert
+        Assert.True(result);
+    }
 }

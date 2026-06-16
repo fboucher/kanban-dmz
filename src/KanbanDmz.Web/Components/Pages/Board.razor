@@ -1,4 +1,5 @@
 @page "/board"
+@page "/board/{boardId:guid}"
 @using Microsoft.FluentUI.AspNetCore.Components
 @using KanbanDmz.Domain.DTOs
 @using KanbanDmz.Web.Services
@@ -168,8 +169,10 @@
         </FluentDragContainer>
     }
 </div>
-
 @code {
+    [Parameter]
+    public Guid? BoardId { get; set; }
+
     [CascadingParameter]
     private Task<AuthenticationState>? AuthStateTask { get; set; }
 
@@ -185,6 +188,10 @@
             var authState = await AuthStateTask;
             _isAuthenticated = authState.User.Identity?.IsAuthenticated ?? false;
         }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
         await LoadBoardAsync();
     }
 
@@ -409,8 +416,8 @@
 
         try
         {
-            var defaultBoardId = new Guid("00000000-0000-0000-0000-000000000001");
-            _board = await KanbanService.GetBoardDetailAsync(defaultBoardId);
+            var targetBoardId = BoardId ?? new Guid("00000000-0000-0000-0000-000000000001");
+            _board = await KanbanService.GetBoardDetailAsync(targetBoardId);
             if (_board == null)
             {
                 _errorMessage = "Unable to load the Kanban board. The board was not found.";
