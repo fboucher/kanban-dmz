@@ -119,7 +119,7 @@
                                 else
                                 {
                                     <div class="category-info">
-                                        <span class="category-pill-display badge-@category.Name.ToLowerInvariant()">@category.Name</span>
+                                        <FluentBadge Color="@GetCategoryColor(category.Name)" Appearance="BadgeAppearance.Tint">@category.Name</FluentBadge>
                                     </div>
                                     <FluentStack Orientation="Orientation.Horizontal" Gap="8px" Style="margin-left: auto;">
                                         <FluentButton Appearance="ButtonAppearance.Subtle" 
@@ -340,5 +340,16 @@
         {
             _errorMessage = $"An error occurred during deletion: {ex.Message}";
         }
+    }
+
+    private BadgeColor GetCategoryColor(string categoryName)
+    {
+        return categoryName.ToLowerInvariant() switch
+        {
+            "bug" => BadgeColor.Danger,
+            "feature" => BadgeColor.Brand,
+            "chore" => BadgeColor.Warning,
+            _ => BadgeColor.Subtle
+        };
     }
 }
