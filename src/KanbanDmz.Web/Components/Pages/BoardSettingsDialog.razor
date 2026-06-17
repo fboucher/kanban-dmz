@@ -46,6 +46,14 @@
 
     private string? _errorMessage;
 
+    protected override void OnInitialized()
+    {
+        if (string.IsNullOrEmpty(Board.BackgroundColor))
+        {
+            Board.BackgroundColor = "#ffffff";
+        }
+    }
+
     private async Task SaveAsync()
     {
         if (string.IsNullOrWhiteSpace(Board.Name)) return;
