@@ -42,9 +42,6 @@
             </div>
             @if (_isAuthenticated)
             {
-                <FluentButton Appearance="ButtonAppearance.Outline" IconStart="@(new Icons.Regular.Size16.Settings())" OnClick="OpenColumnManagerDialog" Style="margin-right: 8px;">
-                    Manage Columns
-                </FluentButton>
                 <FluentButton Appearance="ButtonAppearance.Primary" IconStart="@(new Icons.Regular.Size16.Add())" OnClick="@(() => OpenCreateCardDialog())">
                     Add Card
                 </FluentButton>
@@ -391,29 +388,6 @@
         }
     }
 
-    private async Task OpenColumnManagerDialog()
-    {
-        if (!_isAuthenticated || _board == null) return;
-
-        var options = new DialogOptions
-        {
-            Width = "600px",
-            Modal = true,
-            PreventDismissOnEscape = true,
-            Parameters = new Dictionary<string, object?>
-            {
-                { "Board", _board }
-            }
-        };
-
-        var dialogResult = await DialogService.ShowDialogAsync<ColumnManagerDialog>(options);
-
-        if (!dialogResult.Cancelled && dialogResult.Value is bool hasChanges && hasChanges)
-        {
-            await LoadBoardAsync();
-        }
-    }
-
     private async Task LoadBoardAsync()
     {
         _loading = true;
@@ -589,11 +563,12 @@
 
             var options = new DialogOptions
             {
-                Width = "400px",
+                Width = "700px",
                 Modal = true,
                 Parameters = new Dictionary<string, object?>
                 {
-                    { "Board", boardCopy }
+                    { "Board", boardCopy },
+                    { "BoardDetail", _board }
                 }
             };
 
