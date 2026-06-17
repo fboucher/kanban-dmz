@@ -25,7 +25,8 @@
 
     @if (Expanded)
     {
-        <div style="font-weight: 600; padding: 12px 16px 4px 16px; font-size: 0.85rem; color: var(--neutral-foreground-hint); text-transform: uppercase; letter-spacing: 0.05em; display: flex; align-items: center; justify-content: space-between;">
+        <div style="font-weight: 600; padding: 12px 16px 4px 16px; font-size: 0.85rem; color: var(--neutral-foreground-hint); text-transform: uppercase; letter-spacing: 0.05em; display: flex; align-items: center; gap: 8px;">
+            <FluentIcon Value="@(new Icons.Regular.Size20.Board())" Color="Color.Primary" />
             <span>Boards</span>
         </div>
     }
@@ -45,7 +46,8 @@
         @foreach (var board in _boards)
         {
             var targetHref = $"/board/{board.Id}";
-            <FluentNavItem Href="@targetHref" Match="NavLinkMatch.All" Tooltip="@board.Name">
+            var boardIcon = GetBoardIcon(board.Name);
+            <FluentNavItem Href="@targetHref" Match="NavLinkMatch.All" IconRest="@boardIcon" IconActive="@boardIcon" Tooltip="@board.Name">
                 <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 8px; overflow: hidden;">
                     <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-grow: 1;">@board.Name</span>
                     @if (Expanded)
@@ -195,6 +197,17 @@
         {
             Console.WriteLine("Error duplicating board: " + ex.Message);
         }
+    }
+
+    private static Icon GetBoardIcon(string boardName)
+    {
+        var firstLetter = string.IsNullOrWhiteSpace(boardName) ? "B" : boardName.Trim().Substring(0, 1).ToUpperInvariant();
+        return new Icon(
+            $"Letter_{firstLetter}",
+            IconVariant.Regular,
+            IconSize.Size20,
+            $"<text x=\"10\" y=\"15\" font-size=\"14\" font-weight=\"bold\" text-anchor=\"middle\" font-family=\"var(--body-font)\" fill=\"currentColor\">{firstLetter}</text>"
+        );
     }
 
     private async Task ConfirmDeleteBoardAsync(Board board)
