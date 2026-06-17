@@ -2,114 +2,261 @@
 @using KanbanDmz.Domain
 @using KanbanDmz.Web.Components.Pages
 
-<FluentDialogBody>
+<FluentDialogBody Class="fluent-dialog-body-override">
     <TitleTemplate>
-        <FluentStack VerticalAlignment="VerticalAlignment.Center" Gap="8px">
-            @if (Content.IsEdit)
+        <FluentStack VerticalAlignment="VerticalAlignment.Center" Gap="8px" Style="width: 100%;">
+            @if (Content.IsViewMode)
             {
-                <FluentIcon Value="@(new Icons.Regular.Size24.Edit())" Color="Color.Primary" />
-                <FluentLabel Typo="Typography.PaneHeader">Edit Card</FluentLabel>
+                <FluentIcon Value="@(new Icons.Regular.Size24.Info())" Color="Color.Primary" />
+                <FluentLabel Typo="Typography.PaneHeader">Card Details</FluentLabel>
             }
-            else
+            else if (Content.Id == Guid.Empty)
             {
                 <FluentIcon Value="@(new Icons.Regular.Size24.Add())" Color="Color.Primary" />
                 <FluentLabel Typo="Typography.PaneHeader">Create Card</FluentLabel>
             }
+            else
+            {
+                <FluentIcon Value="@(new Icons.Regular.Size24.Edit())" Color="Color.Primary" />
+                <FluentLabel Typo="Typography.PaneHeader">Edit Card</FluentLabel>
+            }
+            
+            <FluentSpacer />
+            
+            @if (Content.IsViewMode && Content.IsAuthenticated)
+            {
+                <FluentButton Appearance="ButtonAppearance.Subtle" 
+                              IconStart="@(new Icons.Regular.Size16.Edit())" 
+                              OnClick="EnterEditMode"
+                              Title="Edit Card">
+                    Edit
+                </FluentButton>
+            }
         </FluentStack>
     </TitleTemplate>
     <ChildContent>
-    <FluentStack Orientation="Orientation.Vertical" Gap="15px" Style="width: 100%;">
-        <FluentTextInput @bind-Value="Content.Title"
-                         Label="Title"
-                         Required="true"
-                         Style="width: 100%;"
-                         Placeholder="Enter card title..." />
+        @if (Content.IsViewMode)
+        {
+            <!-- VIEW MODE -->
+            <div class="card-view-container" style="@GetDialogAccentStyle()">
+                @if (!string.IsNullOrWhiteSpace(Content.ImageUrl))
+                {
+                    <div class="card-view-image-wrapper">
+                        <img src="@Content.ImageUrl" class="card-view-image" alt="Card Image" />
+                    </div>
+                }
 
-        <FluentStack Orientation="Orientation.Horizontal" Gap="15px" Style="width: 100%;">
-            <FluentSelect TOption="Category"
-                          TValue="string"
-                          Label="Category"
-                          Items="Content.Categories"
-                          OptionText="@(c => c.Name)"
-                          OptionValue="@(c => c.Id.ToString())"
-                          @bind-Value="_selectedCategoryId"
-                          Placeholder="Select Category..."
-                          Required="true"
-                          Style="width: 100%;" />
+                <FluentLabel Typo="Typography.Header" Style="font-weight: 700; margin-bottom: 4px;">@Content.Title</FluentLabel>
 
-            <FluentSelect TOption="Column"
-                          TValue="string"
-                          Label="Column"
-                          Items="Content.Columns"
-                          OptionText="@(c => c.Name)"
-                          OptionValue="@(c => c.Id.ToString())"
-                          @bind-Value="_selectedColumnId"
-                          Placeholder="Select Column..."
-                          Required="true"
-                          Style="width: 100%;" />
-        </FluentStack>
+                <div class="card-view-section">
+                    <span class="section-label">Public Description</span>
+                    @if (!string.IsNullOrWhiteSpace(Content.PublicDescription))
+                    {
+                        <div class="description-box public-desc">@Content.PublicDescription</div>
+                    }
+                    else
+                    {
+                        <div class="description-box empty-desc">No description provided.</div>
+                    }
+                </div>
 
-        <FluentStack Orientation="Orientation.Horizontal" Gap="15px" Style="width: 100%;">
-            <FluentTextInput @bind-Value="Content.AssignedTo"
-                             Label="Assignee"
-                             Placeholder="Username (e.g. Frank)"
-                             Style="width: 100%;" />
+                @if (Content.IsAuthenticated && !string.IsNullOrWhiteSpace(Content.PrivateDescription))
+                {
+                    <div class="card-view-section" style="margin-top: 8px;">
+                        <span class="section-label private-label">
+                            <FluentIcon Value="@(new Icons.Regular.Size12.LockClosed())" Color="Color.Warning" /> Private Description
+                        </span>
+                        <div class="description-box private-desc">@Content.PrivateDescription</div>
+                    </div>
+                }
 
-            <FluentTextInput @bind-Value="Content.Tags"
-                             Label="Tags"
-                             Placeholder="Comma separated (e.g. ui, db)"
-                             Style="width: 100%;" />
-        </FluentStack>
+                <div class="card-view-meta-grid" style="margin-top: 8px;">
+                    <div class="meta-item">
+                        <span class="meta-label">Category</span>
+                        <span class="meta-value">
+                            <FluentBadge Style="@GetCategoryBadgeStyle()" Appearance="BadgeAppearance.Tint">@GetCategoryName()</FluentBadge>
+                        </span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Column</span>
+                        <span class="meta-value">
+                            <FluentBadge Appearance="BadgeAppearance.Tint">@GetColumnName()</FluentBadge>
+                        </span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Assignee</span>
+                        <span class="meta-value">
+                            @if (!string.IsNullOrWhiteSpace(Content.AssignedTo))
+                            {
+                                <FluentStack Orientation="Orientation.Horizontal" Gap="6px" VerticalAlignment="VerticalAlignment.Center">
+                                    <span class="view-assignee-avatar" title="Assigned to @Content.AssignedTo">@GetInitials(Content.AssignedTo)</span>
+                                    <span>@Content.AssignedTo</span>
+                                </FluentStack>
+                            }
+                            else
+                            {
+                                <span class="unassigned-text">Unassigned</span>
+                            }
+                        </span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Visibility</span>
+                        <span class="meta-value">
+                            @if (Content.IsPublic)
+                            {
+                                <FluentBadge Color="BadgeColor.Success" Appearance="BadgeAppearance.Tint">
+                                    <FluentIcon Value="@(new Icons.Regular.Size12.Eye())" Slot="icon-start" /> Public
+                                </FluentBadge>
+                            }
+                            else
+                            {
+                                <FluentBadge Color="BadgeColor.Warning" Appearance="BadgeAppearance.Tint">
+                                    <FluentIcon Value="@(new Icons.Regular.Size12.LockClosed())" Slot="icon-start" /> Private
+                                </FluentBadge>
+                            }
+                        </span>
+                    </div>
+                </div>
 
-@using System.IO
+                @if (!string.IsNullOrWhiteSpace(Content.Tags))
+                {
+                    <div class="card-view-section" style="margin-top: 8px;">
+                        <span class="section-label">Tags</span>
+                        <div class="tags-container">
+                            @foreach (var tag in ParseTags(Content.Tags))
+                            {
+                                <span class="view-tag-pill">#@tag</span>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <!-- EDIT / CREATE MODE -->
+            <FluentStack Orientation="Orientation.Vertical" Gap="15px" Style="width: 100%;">
+                <FluentTextInput @bind-Value="Content.Title"
+                                 Label="Title"
+                                 Required="true"
+                                 Style="width: 100%;"
+                                 Placeholder="Enter card title..." />
 
-        <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" Gap="15px" Style="width: 100%;">
-            <FluentCheckbox @bind-Value="Content.IsPublic"
-                            Label="Visible to Public" />
-            <FluentColorPicker @bind-Value="Content.Color" Label="Card Color" Style="margin-top: -10px;" />
-        </FluentStack>
+                <FluentStack Orientation="Orientation.Horizontal" Gap="15px" Style="width: 100%;">
+                    <FluentSelect TOption="Category"
+                                  TValue="string"
+                                  Label="Category"
+                                  Items="Content.Categories"
+                                  OptionText="@(c => c.Name)"
+                                  OptionValue="@(c => c.Id.ToString())"
+                                  @bind-Value="_selectedCategoryId"
+                                  Placeholder="Select Category..."
+                                  Required="true"
+                                  Style="width: 100%;" />
 
-        <div style="border: 1px dashed var(--neutral-stroke-rest); padding: 12px; border-radius: 4px; width: 100%; box-sizing: border-box;">
-            <FluentLabel Typo="Typography.Body" Style="font-weight: 600; margin-bottom: 8px;">Card Image</FluentLabel>
-            <FluentStack Orientation="Orientation.Vertical" Gap="8px">
-                <FluentTextInput @bind-Value="Content.ImageUrl"
-                                 Label="Image URL"
-                                 Placeholder="Enter image URL or upload below..."
-                                 Style="width: 100%;" />
-                
-                <FluentInputFile Id="card-image-upload"
-                                 Mode="InputFileMode.Stream"
-                                 Multiple="false"
-                                 Accept="image/*"
-                                 OnFileUploaded="@OnFileUploadedAsync"
-                                 Style="width: 100%;">
-                    <ChildContent>
-                        <FluentLabel Typo="Typography.Body">Drag image here or click to browse</FluentLabel>
-                    </ChildContent>
-                </FluentInputFile>
+                    <FluentSelect TOption="Column"
+                                  TValue="string"
+                                  Label="Column"
+                                  Items="Content.Columns"
+                                  OptionText="@(c => c.Name)"
+                                  OptionValue="@(c => c.Id.ToString())"
+                                  @bind-Value="_selectedColumnId"
+                                  Placeholder="Select Column..."
+                                  Required="true"
+                                  Style="width: 100%;" />
+                </FluentStack>
+
+                <FluentTextArea @bind-Value="Content.PublicDescription"
+                                Label="Public Description"
+                                Rows="6"
+                                Style="width: 100%; max-width: 100%;"
+                                Placeholder="Description visible to anyone..." />
+
+                <FluentTextArea @bind-Value="Content.PrivateDescription"
+                                Label="Private Description"
+                                Rows="6"
+                                Style="width: 100%; max-width: 100%;"
+                                Placeholder="Description visible only to authenticated users..." />
+
+                @using System.IO
+
+                <div class="edit-bottom-grid">
+                    <!-- Column 1: Assignee and Tags -->
+                    <div class="edit-bottom-column">
+                        <FluentTextInput @bind-Value="Content.AssignedTo"
+                                         Label="Assignee"
+                                         Placeholder="Username (e.g. Frank)"
+                                         Style="width: 100%;" />
+
+                        <FluentTextInput @bind-Value="Content.Tags"
+                                         Label="Tags"
+                                         Placeholder="Comma separated (e.g. ui, db)"
+                                         Style="width: 100%;" />
+                    </div>
+
+                    <!-- Column 2: Visibility & Custom Card Color -->
+                    <div class="edit-bottom-column">
+                        <FluentLabel Typo="Typography.Body" Style="font-weight: 600; margin-bottom: 8px;">Settings</FluentLabel>
+                        <FluentCheckbox @bind-Value="Content.IsPublic"
+                                        Label="Visible to Public" />
+                        <FluentCheckbox @bind-Value="HasCustomColor"
+                                        Label="Custom Card Color" Style="margin-top: 8px;" />
+                        @if (_hasCustomColor)
+                        {
+                            <div style="display: flex; align-items: center; gap: 10px; margin-top: 4px;">
+                                <input type="color" @bind="_cardColor"
+                                       style="width: 36px; height: 30px; border: 1px solid var(--neutral-stroke-rest); border-radius: 4px; padding: 2px; cursor: pointer; background: none;" />
+                                <span style="font-size: 0.8rem; color: var(--neutral-foreground-hint); font-family: monospace;">@_cardColor</span>
+                            </div>
+                        }
+                    </div>
+
+                    <!-- Column 3: Card Image Upload -->
+                    <div class="edit-bottom-column">
+                        <div style="border: 1px dashed var(--neutral-stroke-rest); padding: 10px; border-radius: 4px; width: 100%; box-sizing: border-box; display: flex; flex-direction: column; gap: 8px;">
+                            <FluentLabel Typo="Typography.Body" Style="font-weight: 600; margin-bottom: 2px;">Card Image</FluentLabel>
+                            <FluentTextInput @bind-Value="Content.ImageUrl"
+                                             Label="Image URL"
+                                             Placeholder="Enter image URL..."
+                                             Style="width: 100%;" />
+                            
+                            <FluentInputFile Id="card-image-upload"
+                                             Mode="InputFileMode.Stream"
+                                             Multiple="false"
+                                             Accept="image/*"
+                                             OnFileUploaded="@OnFileUploadedAsync"
+                                             Style="width: 100%;">
+                                <ChildContent>
+                                    <FluentLabel Typo="Typography.Body" Style="font-size: 0.8rem;">Drag image or browse</FluentLabel>
+                                </ChildContent>
+                            </FluentInputFile>
+                        </div>
+                    </div>
+                </div>
             </FluentStack>
-        </div>
-
-        <FluentTextArea @bind-Value="Content.PublicDescription"
-                        Label="Public Description"
-                        Rows="3"
-                        Style="width: 100%;"
-                        Placeholder="Description visible to anyone..." />
-
-        <FluentTextArea @bind-Value="Content.PrivateDescription"
-                        Label="Private Description"
-                        Rows="3"
-                        Style="width: 100%;"
-                        Placeholder="Description visible only to authenticated users..." />
-    </FluentStack>
+        }
     </ChildContent>
     <ActionTemplate>
-        @if (Content.IsEdit)
+        @if (Content.IsViewMode)
         {
-            <FluentButton Appearance="ButtonAppearance.Outline" BackgroundColor="#ef4444" Color="#ffffff" OnClick="DeleteAsync">Delete Card</FluentButton>
+            <!-- VIEW MODE BUTTONS -->
+            <FluentButton Appearance="ButtonAppearance.Primary" OnClick="CancelAsync">Close</FluentButton>
         }
-        <FluentButton Appearance="ButtonAppearance.Default" OnClick="CancelAsync">Cancel</FluentButton>
-        <FluentButton Appearance="ButtonAppearance.Primary" OnClick="SaveAsync" Disabled="@(!IsValid)">Save</FluentButton>
+        else
+        {
+            <!-- EDIT / CREATE MODE BUTTONS -->
+            @if (Content.Id != Guid.Empty)
+            {
+                <FluentButton Appearance="ButtonAppearance.Outline" BackgroundColor="#ef4444" Color="#ffffff" OnClick="DeleteAsync">Delete Card</FluentButton>
+                <FluentSpacer />
+                <FluentButton Appearance="ButtonAppearance.Default" OnClick="CancelEdit">Cancel</FluentButton>
+            }
+            else
+            {
+                <FluentButton Appearance="ButtonAppearance.Default" OnClick="CancelAsync">Cancel</FluentButton>
+            }
+            <FluentButton Appearance="ButtonAppearance.Primary" OnClick="SaveAsync" Disabled="@(!IsValid)">Save</FluentButton>
+        }
     </ActionTemplate>
 </FluentDialogBody>
 
@@ -136,6 +283,101 @@
         !string.IsNullOrWhiteSpace(Content.Title)
         && Content.CategoryId != 0
         && Content.ColumnId != Guid.Empty;
+
+    // Custom Color picker bindings
+    private bool _hasCustomColor;
+    private string _cardColorValue = "#ffffff";
+    private string _cardColor
+    {
+        get => _cardColorValue;
+        set
+        {
+            _cardColorValue = value;
+            Content.Color = value;
+        }
+    }
+
+    private bool HasCustomColor
+    {
+        get => _hasCustomColor;
+        set
+        {
+            _hasCustomColor = value;
+            Content.Color = value ? _cardColorValue : null;
+        }
+    }
+
+    // Backup states for reverting edit
+    private string _backupTitle = string.Empty;
+    private string _backupPublicDescription = string.Empty;
+    private string _backupPrivateDescription = string.Empty;
+    private int _backupCategoryId;
+    private Guid _backupColumnId;
+    private string _backupAssignedTo = string.Empty;
+    private bool _backupIsPublic;
+    private string? _backupImageUrl;
+    private string _backupTags = string.Empty;
+    private string? _backupColor;
+
+    protected override void OnInitialized()
+    {
+        if (!string.IsNullOrWhiteSpace(Content.Color))
+        {
+            _cardColorValue = Content.Color;
+            _hasCustomColor = true;
+        }
+        CreateBackup();
+    }
+
+    private void CreateBackup()
+    {
+        _backupTitle = Content.Title;
+        _backupPublicDescription = Content.PublicDescription;
+        _backupPrivateDescription = Content.PrivateDescription;
+        _backupCategoryId = Content.CategoryId;
+        _backupColumnId = Content.ColumnId;
+        _backupAssignedTo = Content.AssignedTo;
+        _backupIsPublic = Content.IsPublic;
+        _backupImageUrl = Content.ImageUrl;
+        _backupTags = Content.Tags;
+        _backupColor = Content.Color;
+    }
+
+    private void RestoreBackup()
+    {
+        Content.Title = _backupTitle;
+        Content.PublicDescription = _backupPublicDescription;
+        Content.PrivateDescription = _backupPrivateDescription;
+        Content.CategoryId = _backupCategoryId;
+        Content.ColumnId = _backupColumnId;
+        Content.AssignedTo = _backupAssignedTo;
+        Content.IsPublic = _backupIsPublic;
+        Content.ImageUrl = _backupImageUrl;
+        Content.Tags = _backupTags;
+        Content.Color = _backupColor;
+
+        if (!string.IsNullOrWhiteSpace(Content.Color))
+        {
+            _cardColorValue = Content.Color;
+            _hasCustomColor = true;
+        }
+        else
+        {
+            _hasCustomColor = false;
+        }
+    }
+
+    private void EnterEditMode()
+    {
+        CreateBackup();
+        Content.IsViewMode = false;
+    }
+
+    private void CancelEdit()
+    {
+        RestoreBackup();
+        Content.IsViewMode = true;
+    }
 
     private async Task SaveAsync()
     {
@@ -172,6 +414,82 @@
             {
                 Console.WriteLine("Error reading uploaded file: " + ex.Message);
             }
+        }
+    }
+
+    // Helper methods for View Mode
+    private string GetCategoryName() =>
+        Content.Categories.FirstOrDefault(c => c.Id == Content.CategoryId)?.Name ?? "Uncategorized";
+
+    private string GetColumnName() =>
+        Content.Columns.FirstOrDefault(c => c.Id == Content.ColumnId)?.Name ?? "Unknown Column";
+
+    private string GetCategoryColor() =>
+        Content.Categories.FirstOrDefault(c => c.Id == Content.CategoryId)?.Color ?? "";
+
+    private string GetCategoryBadgeStyle()
+    {
+        var color = GetCategoryColor();
+        return string.IsNullOrWhiteSpace(color) ? "" : $"--badge-fill-color: {color}; color: {GetContrastColor(color)};";
+    }
+
+    private static List<string> ParseTags(string tags) =>
+        tags.Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Select(t => t.Trim())
+            .Where(t => !string.IsNullOrEmpty(t))
+            .ToList();
+
+    private string GetInitials(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return "?";
+        var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 1) return parts[0][0].ToString().ToUpperInvariant();
+        return (parts[0][0].ToString() + parts[^1][0].ToString()).ToUpperInvariant();
+    }
+
+    private string GetDialogAccentStyle()
+    {
+        string? hexColor = null;
+        if (!string.IsNullOrWhiteSpace(Content.Color))
+        {
+            hexColor = Content.Color;
+        }
+        else
+        {
+            var category = Content.Categories.FirstOrDefault(c => c.Id == Content.CategoryId);
+            if (!string.IsNullOrWhiteSpace(category?.Color))
+            {
+                hexColor = category.Color;
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(hexColor))
+        {
+            return $"--card-accent-color: {hexColor};";
+        }
+        return "";
+    }
+
+    private string GetContrastColor(string hex)
+    {
+        if (string.IsNullOrWhiteSpace(hex)) return "var(--neutral-foreground-rest)";
+        try
+        {
+            hex = hex.TrimStart('#');
+            if (hex.Length == 3)
+            {
+                hex = new string(new[] { hex[0], hex[0], hex[1], hex[1], hex[2], hex[2] });
+            }
+            if (hex.Length != 6) return "var(--neutral-foreground-rest)";
+            int r = Convert.ToInt32(hex.Substring(0, 2), 16);
+            int g = Convert.ToInt32(hex.Substring(2, 2), 16);
+            int b = Convert.ToInt32(hex.Substring(4, 2), 16);
+            double yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000.0;
+            return (yiq >= 128) ? "#1a1a1a" : "#ffffff";
+        }
+        catch
+        {
+            return "var(--neutral-foreground-rest)";
         }
     }
 }
