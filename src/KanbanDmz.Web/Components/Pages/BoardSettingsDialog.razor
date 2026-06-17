@@ -28,7 +28,18 @@
             <FluentCheckbox @bind-Value="Board.IsPublic"
                             Label="Visible to Public" />
 
-            <FluentColorPicker @bind-Value="Board.BackgroundColor" Label="Board Background Color" />
+            <FluentCheckbox @bind-Value="_hasBackgroundColor"
+                            Label="Custom Background Color" />
+
+            @if (_hasBackgroundColor)
+            {
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <label style="font-size: 0.9rem; font-weight: 500; color: var(--neutral-foreground-rest);">Background Color:</label>
+                    <input type="color" @bind="_backgroundColor"
+                           style="width: 44px; height: 36px; border: 1px solid var(--neutral-stroke-rest); border-radius: 4px; padding: 2px; cursor: pointer; background: none;" />
+                    <span style="font-size: 0.85rem; color: var(--neutral-foreground-hint); font-family: monospace;">@_backgroundColor</span>
+                </div>
+            }
         </FluentStack>
     </ChildContent>
     <ActionTemplate>
@@ -45,6 +56,17 @@
     public IDialogInstance DialogInstance { get; set; } = default!;
 
     private string? _errorMessage;
+    private string _backgroundColor = "#ffffff";
+    private bool _hasBackgroundColor;
+
+    protected override void OnInitialized()
+    {
+        if (!string.IsNullOrEmpty(Board.BackgroundColor))
+        {
+            _backgroundColor = Board.BackgroundColor;
+            _hasBackgroundColor = true;
+        }
+    }
 
     private async Task SaveAsync()
     {
@@ -52,6 +74,7 @@
 
         try
         {
+            Board.BackgroundColor = _hasBackgroundColor ? _backgroundColor : null;
             var success = await KanbanService.UpdateBoardAsync(Board);
             if (success)
             {

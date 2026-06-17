@@ -2,8 +2,7 @@
 .board-container {
     display: flex;
     flex-direction: column;
-    height: calc(100vh - 4rem);
-    padding: 1.5rem;
+    min-height: 100%;
     box-sizing: border-box;
 }
 
@@ -12,6 +11,7 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 2rem;
+    padding: 1.5rem 1.5rem 0 1.5rem;
 }
 
 .board-title-group {
@@ -37,7 +37,7 @@
     overflow-x: auto;
     flex: 1;
     align-items: flex-start;
-    padding-bottom: 1rem;
+    padding: 0 1.5rem 1rem 1.5rem;
 }
 
 /* Column Design */
@@ -243,6 +243,7 @@
     height: 60vh;
     gap: 1.5rem;
     text-align: center;
+    padding: 1.5rem;
 }
 
 .error-text {
