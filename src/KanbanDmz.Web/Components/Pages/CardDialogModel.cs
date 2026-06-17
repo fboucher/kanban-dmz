@@ -20,6 +20,8 @@ public class CardDialogModel
     public string? Color { get; set; }
     public bool IsEdit { get; set; }
     public bool IsDelete { get; set; }
+    public bool IsViewMode { get; set; } = true;
+    public bool IsAuthenticated { get; set; }
     public List<Column> Columns { get; set; } = [];
     public List<Category> Categories { get; set; } = [];
 }
