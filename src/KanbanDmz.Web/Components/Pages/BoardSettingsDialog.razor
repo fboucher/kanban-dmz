@@ -28,7 +28,13 @@
             <FluentCheckbox @bind-Value="Board.IsPublic"
                             Label="Visible to Public" />
 
-            <FluentColorPicker @bind-Value="Board.BackgroundColor" Label="Board Background Color" />
+            <FluentCheckbox @bind-Value="_hasBackgroundColor"
+                            Label="Custom Background Color" />
+
+            @if (_hasBackgroundColor)
+            {
+                <FluentColorPicker @bind-Value="_backgroundColor" Label="Board Background Color" />
+            }
         </FluentStack>
     </ChildContent>
     <ActionTemplate>
@@ -45,12 +51,15 @@
     public IDialogInstance DialogInstance { get; set; } = default!;
 
     private string? _errorMessage;
+    private string _backgroundColor = "#ffffff";
+    private bool _hasBackgroundColor;
 
     protected override void OnInitialized()
     {
-        if (string.IsNullOrEmpty(Board.BackgroundColor))
+        if (!string.IsNullOrEmpty(Board.BackgroundColor))
         {
-            Board.BackgroundColor = "#ffffff";
+            _backgroundColor = Board.BackgroundColor;
+            _hasBackgroundColor = true;
         }
     }
 
@@ -60,6 +69,7 @@
 
         try
         {
+            Board.BackgroundColor = _hasBackgroundColor ? _backgroundColor : null;
             var success = await KanbanService.UpdateBoardAsync(Board);
             if (success)
             {
