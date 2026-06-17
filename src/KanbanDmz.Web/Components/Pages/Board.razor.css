@@ -25,9 +25,7 @@
     font-weight: 800;
     letter-spacing: -0.025em;
     margin: 0;
-    background: linear-gradient(135deg, var(--accent-fill-rest) 0%, #a855f7 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+    color: var(--accent-fill-rest);
 }
 
 /* Kanban Board Canvas */

@@ -30,13 +30,18 @@
     {
         <div class="board-header">
             <div class="board-title-group">
-                <h1 class="board-title">@_board.Name Board</h1>
+                <h1 class="board-title">@_board.Name</h1>
+                @if (_isAuthenticated)
+                {
+                    <FluentButton Appearance="ButtonAppearance.Subtle"
+                                  IconStart="@(new Icons.Regular.Size20.Settings())"
+                                  OnClick="OpenBoardSettingsDialog"
+                                  Title="Board Settings"
+                                  aria-label="Board Settings" />
+                }
             </div>
             @if (_isAuthenticated)
             {
-                <FluentButton Appearance="ButtonAppearance.Outline" IconStart="@(new Icons.Regular.Size16.Settings())" OnClick="OpenBoardSettingsDialog" Style="margin-right: 8px;">
-                    Board Settings
-                </FluentButton>
                 <FluentButton Appearance="ButtonAppearance.Outline" IconStart="@(new Icons.Regular.Size16.Settings())" OnClick="OpenColumnManagerDialog" Style="margin-right: 8px;">
                     Manage Columns
                 </FluentButton>
