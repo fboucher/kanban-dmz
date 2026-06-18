@@ -173,17 +173,17 @@
 
                 <div class="markdown-container" style="width: 100%;">
                     <FluentLabel Style="font-weight: 600; margin-bottom: 4px; display: block;">Public Description</FluentLabel>
-                    <FluentTabs Style="width: 100%;">
-                        <FluentTab Id="write-tab" Label="Write">
+                    <FluentTabs @bind-ActiveTabId="@_activeDescriptionTabId" Style="width: 100%;">
+                        <FluentTab Id="write-tab" Header="Write">
                             <div style="padding-top: 10px;">
                                 <FluentTextArea @bind-Value="Content.PublicDescription"
                                                 Rows="8"
-                                                Style="width: 100%; max-width: 100%;"
+                                                Cols="80"
                                                 Placeholder="Description visible to anyone (Markdown supported)..."
                                                 aria-label="Public Description" />
                             </div>
                         </FluentTab>
-                        <FluentTab Id="preview-tab" Label="Preview">
+                        <FluentTab Id="preview-tab" Header="Preview">
                             <div style="padding-top: 10px;">
                                 <div class="markdown-preview-box">
                                     @if (!string.IsNullOrWhiteSpace(Content.PublicDescription))
@@ -205,7 +205,7 @@
                 <FluentTextArea @bind-Value="Content.PrivateDescription"
                                 Label="Private Description"
                                 Rows="6"
-                                Style="width: 100%; max-width: 100%;"
+                                Cols="80"
                                 Placeholder="Description visible only to authenticated users..." />
 
                 @using System.IO
@@ -296,6 +296,8 @@
 
     [CascadingParameter]
     public IDialogInstance DialogInstance { get; set; } = default!;
+
+    private string? _activeDescriptionTabId = "write-tab";
 
     private string _selectedCategoryId
     {
