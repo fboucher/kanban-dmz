@@ -194,4 +194,9 @@
     box-sizing: border-box;
 }
 
+/* Enable vertical resizing for the inner text areas of FluentTextArea */
+::deep fluent-text-area::part(control) {
+    resize: vertical;
+}
+
 
