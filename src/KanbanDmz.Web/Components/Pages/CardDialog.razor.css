@@ -194,9 +194,17 @@
     box-sizing: border-box;
 }
 
-/* Enable vertical resizing for the inner text areas of FluentTextArea */
+/* Ensure the fluent-text-area host element occupies full width and allows auto height based on rows parameter */
+fluent-text-area,
+::deep fluent-text-area {
+    width: 100% !important;
+    height: auto !important;
+}
+
+/* Enable vertical resizing for the inner textarea and specify a reasonable min-height */
 ::deep fluent-text-area::part(control) {
     resize: vertical;
+    min-height: 120px;
 }
 
 
