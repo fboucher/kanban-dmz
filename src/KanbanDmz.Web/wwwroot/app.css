@@ -340,3 +340,25 @@ body[data-theme-name="synthwave84"] {
     --neutral-foreground-rest: #f0e8f5 !important;
     --neutral-foreground-hint: #fe4450 !important;
 }
+
+/* CardDialog Textarea Resizing & Width Overrides */
+.fluent-dialog-body-override fluent-field,
+.fluent-dialog-body-override fluent-textarea {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+}
+
+.fluent-dialog-body-override fluent-textarea::part(control) {
+    resize: vertical !important;
+    min-height: 280px !important; /* Makes it taller, ~16 rows equivalent */
+}
+
+/* Ensure FluentTabs and panels inside CardDialog stretch to full width */
+.fluent-dialog-body-override fluent-tabs,
+.fluent-dialog-body-override fluent-tab-panel,
+.fluent-dialog-body-override [role="tabpanel"] {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+}

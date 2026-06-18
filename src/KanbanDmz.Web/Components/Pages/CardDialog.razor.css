@@ -194,19 +194,6 @@
     box-sizing: border-box;
 }
 
-/* Ensure the fluent-field wrapper and fluent-textarea host element occupy full width and allow auto height */
-fluent-field,
-::deep fluent-field,
-fluent-textarea,
-::deep fluent-textarea {
-    width: 100% !important;
-    height: auto !important;
-}
 
-/* Enable vertical resizing for the inner textarea and specify a robust min-height */
-::deep fluent-textarea::part(control) {
-    resize: vertical;
-    min-height: 150px;
-}
 
 
