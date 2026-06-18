@@ -14,22 +14,13 @@ a, .btn-link {
     color: var(--accent-fill-rest);
 }
 
-/* Markdown content styles for board view */
-.card-description .markdown-content {
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    line-height: 1.5;
-}
-
-/* Markdown content styles for card dialog view */
-.description-box .markdown-content {
+/* Markdown content styles */
+.markdown-content {
     line-height: 1.6;
     white-space: pre-wrap;
 }
 
-.description-box .markdown-content h1 {
+.markdown-content h1 {
     font-size: 1.5rem;
     font-weight: 700;
     margin-top: 1.5rem;
@@ -37,7 +28,7 @@ a, .btn-link {
     color: var(--neutral-foreground-rest);
 }
 
-.description-box .markdown-content h2 {
+.markdown-content h2 {
     font-size: 1.3rem;
     font-weight: 700;
     margin-top: 1.25rem;
@@ -45,7 +36,7 @@ a, .btn-link {
     color: var(--neutral-foreground-rest);
 }
 
-.description-box .markdown-content h3 {
+.markdown-content h3 {
     font-size: 1.2rem;
     font-weight: 700;
     margin-top: 1rem;
@@ -53,37 +44,37 @@ a, .btn-link {
     color: var(--neutral-foreground-rest);
 }
 
-.description-box .markdown-content p {
+.markdown-content p {
     margin-bottom: 0.75rem;
     line-height: 1.6;
 }
 
-.description-box .markdown-content ul, .description-box .markdown-content ol {
+.markdown-content ul, .markdown-content ol {
     margin-left: 1.5rem;
     margin-bottom: 0.75rem;
 }
 
-.description-box .markdown-content ul li {
+.markdown-content ul li {
     list-style-type: disc;
     margin-bottom: 0.25rem;
 }
 
-.description-box .markdown-content ol li {
+.markdown-content ol li {
     list-style-type: decimal;
     margin-bottom: 0.25rem;
 }
 
-.description-box .markdown-content a {
+.markdown-content a {
     color: var(--accent-fill-rest);
     text-decoration: none;
     font-weight: 500;
 }
 
-.description-box .markdown-content a:hover {
+.markdown-content a:hover {
     text-decoration: underline;
 }
 
-.description-box .markdown-content code {
+.markdown-content code {
     background-color: var(--neutral-fill-secondary-rest);
     padding: 0.2rem 0.4rem;
     border-radius: 4px;
@@ -92,7 +83,7 @@ a, .btn-link {
     color: var(--neutral-foreground-rest);
 }
 
-.description-box .markdown-content blockquote {
+.markdown-content blockquote {
     border-left: 4px solid var(--accent-fill-rest);
     padding-left: 1rem;
     margin-left: 0;
@@ -101,19 +92,19 @@ a, .btn-link {
     font-style: italic;
 }
 
-.description-box .markdown-content table {
+.markdown-content table {
     border-collapse: collapse;
     width: 100%;
     margin-bottom: 1rem;
 }
 
-.description-box .markdown-content table th, .description-box .markdown-content table td {
+.markdown-content table th, .markdown-content table td {
     border: 1px solid var(--neutral-stroke-divider-rest);
     padding: 0.5rem;
     text-align: left;
 }
 
-.description-box .markdown-content table th {
+.markdown-content table th {
     background-color: var(--neutral-fill-input-rest);
     font-weight: 600;
 }

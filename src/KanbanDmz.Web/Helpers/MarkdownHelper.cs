@@ -1,37 +1,31 @@
 using Markdig;
 
-namespace KanbanDmz.Web.Helpers
+namespace KanbanDmz.Web.Helpers;
+
+public static class MarkdownHelper
 {
-    public static class MarkdownHelper
+    private static readonly MarkdownPipeline Pipeline = new MarkdownPipelineBuilder()
+        .UseAdvancedExtensions()
+        .DisableHtml()
+        .Build();
+
+    public static string ToHtml(string markdown)
     {
-        public static string ToHtml(string markdown)
+        if (string.IsNullOrWhiteSpace(markdown))
         {
-            if (string.IsNullOrWhiteSpace(markdown))
-            {
-                return string.Empty;
-            }
-
-            var pipeline = new MarkdownPipelineBuilder()
-                .UseAdvancedExtensions()
-                .DisableHtml()
-                .Build();
-
-            return Markdown.ToHtml(markdown, pipeline);
+            return string.Empty;
         }
 
-        public static string ToPlainText(string markdown)
-        {
-            if (string.IsNullOrWhiteSpace(markdown))
-            {
-                return string.Empty;
-            }
-
-            var pipeline = new MarkdownPipelineBuilder()
-                .UseAdvancedExtensions()
-                .DisableHtml()
-                .Build();
-
-            return Markdown.ToHtml(markdown, pipeline);
-        }
+        return Markdown.ToHtml(markdown, Pipeline);
     }
-}
+
+    public static string ToPlainText(string markdown)
+    {
+        if (string.IsNullOrWhiteSpace(markdown))
+        {
+            return string.Empty;
+        }
+
+        return Markdown.ToPlainText(markdown, Pipeline);
+    }
+}
