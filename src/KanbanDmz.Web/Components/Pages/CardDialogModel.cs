@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using KanbanDmz.Domain;
+using KanbanDmz.Web.Helpers;
 
 namespace KanbanDmz.Web.Components.Pages;
 
@@ -24,4 +25,6 @@ public class CardDialogModel
     public bool IsAuthenticated { get; set; }
     public List<Column> Columns { get; set; } = [];
     public List<Category> Categories { get; set; } = [];
+    public string PublicDescriptionPreview => MarkdownHelper.ToPlainText(PublicDescription);
+    public string PublicDescriptionHtml => MarkdownHelper.ToHtml(PublicDescription);
 }

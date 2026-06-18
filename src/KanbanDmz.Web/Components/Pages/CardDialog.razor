@@ -1,6 +1,7 @@
 @using Microsoft.FluentUI.AspNetCore.Components
 @using KanbanDmz.Domain
 @using KanbanDmz.Web.Components.Pages
+@using KanbanDmz.Web.Helpers
 
 <FluentDialogBody Class="fluent-dialog-body-override">
     <TitleTemplate>
@@ -52,7 +53,18 @@
                     <span class="section-label">Public Description</span>
                     @if (!string.IsNullOrWhiteSpace(Content.PublicDescription))
                     {
-                        <div class="description-box public-desc">@Content.PublicDescription</div>
+                        <div class="description-box public-desc">
+                            @if (Content.IsViewMode)
+                            {
+                                <div class="markdown-content">
+                                    <MarkupString Value="@Content.PublicDescriptionHtml" />
+                                </div>
+                            }
+                            else
+                            {
+                                @Content.PublicDescription
+                            }
+                        </div>
                     }
                     else
                     {
@@ -166,11 +178,25 @@
                                   Style="width: 100%;" />
                 </FluentStack>
 
-                <FluentTextArea @bind-Value="Content.PublicDescription"
-                                Label="Public Description"
-                                Rows="6"
-                                Style="width: 100%; max-width: 100%;"
-                                Placeholder="Description visible to anyone..." />
+                <div class="markdown-container">
+                    <FluentTextArea @bind-Value="Content.PublicDescription"
+                                    Label="Public Description"
+                                    Rows="6"
+                                    Style="width: 100%; max-width: 100%;"
+                                    Placeholder="Description visible to anyone..." />
+
+                    @if (!string.IsNullOrWhiteSpace(Content.PublicDescription))
+                    {
+                        <div class="markdown-preview">
+                            <div class="markdown-preview-header">Preview</div>
+                            <div class="markdown-preview-content">
+                                <div class="markdown-content">
+                                    <MarkupString Value="@Content.PublicDescriptionHtml" />
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
 
                 <FluentTextArea @bind-Value="Content.PrivateDescription"
                                 Label="Private Description"
