@@ -14,6 +14,101 @@ a, .btn-link {
     color: var(--accent-fill-rest);
 }
 
+/* Markdown content styles */
+.markdown-content {
+    line-height: 1.6;
+    white-space: pre-wrap;
+}
+
+.markdown-content h1 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-top: 1.5rem;
+    margin-bottom: 0.5rem;
+    color: var(--neutral-foreground-rest);
+}
+
+.markdown-content h2 {
+    font-size: 1.3rem;
+    font-weight: 700;
+    margin-top: 1.25rem;
+    margin-bottom: 0.5rem;
+    color: var(--neutral-foreground-rest);
+}
+
+.markdown-content h3 {
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin-top: 1rem;
+    margin-bottom: 0.5rem;
+    color: var(--neutral-foreground-rest);
+}
+
+.markdown-content p {
+    margin-bottom: 0.75rem;
+    line-height: 1.6;
+}
+
+.markdown-content ul, .markdown-content ol {
+    margin-left: 1.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.markdown-content ul li {
+    list-style-type: disc;
+    margin-bottom: 0.25rem;
+}
+
+.markdown-content ol li {
+    list-style-type: decimal;
+    margin-bottom: 0.25rem;
+}
+
+.markdown-content a {
+    color: var(--accent-fill-rest);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.markdown-content a:hover {
+    text-decoration: underline;
+}
+
+.markdown-content code {
+    background-color: var(--neutral-fill-secondary-rest);
+    padding: 0.2rem 0.4rem;
+    border-radius: 4px;
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 0.9em;
+    color: var(--neutral-foreground-rest);
+}
+
+.markdown-content blockquote {
+    border-left: 4px solid var(--accent-fill-rest);
+    padding-left: 1rem;
+    margin-left: 0;
+    margin-right: 0;
+    color: var(--neutral-foreground-hint);
+    font-style: italic;
+}
+
+.markdown-content table {
+    border-collapse: collapse;
+    width: 100%;
+    margin-bottom: 1rem;
+}
+
+.markdown-content table th, .markdown-content table td {
+    border: 1px solid var(--neutral-stroke-divider-rest);
+    padding: 0.5rem;
+    text-align: left;
+}
+
+.markdown-content table th {
+    background-color: var(--neutral-fill-input-rest);
+    font-weight: 600;
+}
+
 .navmenu-icon {
     display: none;
 }
@@ -244,4 +339,26 @@ body[data-theme-name="synthwave84"] {
     --neutral-stroke-divider-rest: #46345e !important;
     --neutral-foreground-rest: #f0e8f5 !important;
     --neutral-foreground-hint: #fe4450 !important;
+}
+
+/* CardDialog Textarea Resizing & Width Overrides */
+.fluent-dialog-body-override fluent-field,
+.fluent-dialog-body-override fluent-textarea {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+}
+
+.fluent-dialog-body-override fluent-textarea::part(control) {
+    resize: vertical !important;
+    min-height: 280px !important; /* Makes it taller, ~16 rows equivalent */
+}
+
+/* Ensure FluentTabs and panels inside CardDialog stretch to full width */
+.fluent-dialog-body-override fluent-tabs,
+.fluent-dialog-body-override fluent-tab-panel,
+.fluent-dialog-body-override [role="tabpanel"] {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
 }

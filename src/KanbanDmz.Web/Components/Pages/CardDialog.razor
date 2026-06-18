@@ -1,6 +1,7 @@
 @using Microsoft.FluentUI.AspNetCore.Components
 @using KanbanDmz.Domain
 @using KanbanDmz.Web.Components.Pages
+@using KanbanDmz.Web.Helpers
 
 <FluentDialogBody Class="fluent-dialog-body-override">
     <TitleTemplate>
@@ -52,7 +53,11 @@
                     <span class="section-label">Public Description</span>
                     @if (!string.IsNullOrWhiteSpace(Content.PublicDescription))
                     {
-                        <div class="description-box public-desc">@Content.PublicDescription</div>
+                        <div class="description-box public-desc">
+                            <div class="markdown-content">
+                                @((MarkupString)Content.PublicDescriptionHtml)
+                            </div>
+                        </div>
                     }
                     else
                     {
@@ -166,17 +171,44 @@
                                   Style="width: 100%;" />
                 </FluentStack>
 
-                <FluentTextArea @bind-Value="Content.PublicDescription"
-                                Label="Public Description"
-                                Rows="6"
-                                Style="width: 100%; max-width: 100%;"
-                                Placeholder="Description visible to anyone..." />
+                <div class="markdown-container" style="width: 100%;">
+                    <FluentLabel Style="font-weight: 600; margin-bottom: 4px; display: block;">Public Description</FluentLabel>
+                    <FluentTabs @bind-ActiveTabId="@_activeDescriptionTabId" Style="width: 100%;">
+                        <FluentTab Id="write-tab" Header="Write">
+                            <div style="padding-top: 10px;">
+                                <FluentTextArea @bind-Value="Content.PublicDescription"
+                                                Rows="16"
+                                                Cols="110"
+                                                Style="width: 100%;"
+                                                Placeholder="Description visible to anyone (Markdown supported)..."
+                                                aria-label="Public Description" />
+                            </div>
+                        </FluentTab>
+                        <FluentTab Id="preview-tab" Header="Preview">
+                            <div style="padding-top: 10px;">
+                                <div class="markdown-preview-box">
+                                    @if (!string.IsNullOrWhiteSpace(Content.PublicDescription))
+                                    {
+                                        <div class="markdown-content">
+                                            @((MarkupString)Content.PublicDescriptionHtml)
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div style="color: var(--neutral-foreground-hint); font-style: italic;">Nothing to preview.</div>
+                                    }
+                                </div>
+                            </div>
+                        </FluentTab>
+                    </FluentTabs>
+                </div>
 
                 <FluentTextArea @bind-Value="Content.PrivateDescription"
-                                Label="Private Description"
-                                Rows="6"
-                                Style="width: 100%; max-width: 100%;"
-                                Placeholder="Description visible only to authenticated users..." />
+                                 Label="Private Description"
+                                 Rows="12"
+                                 Cols="110"
+                                 Style="width: 100%;"
+                                 Placeholder="Description visible only to authenticated users..." />
 
                 @using System.IO
 
@@ -266,6 +298,8 @@
 
     [CascadingParameter]
     public IDialogInstance DialogInstance { get; set; } = default!;
+
+    private string? _activeDescriptionTabId = "write-tab";
 
     private string _selectedCategoryId
     {

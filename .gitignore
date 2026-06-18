@@ -482,3 +482,10 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+# Agentic and scratch folders
+.agents/
+scratch/
+skills-lock.json
+.antigravitycli/
+
