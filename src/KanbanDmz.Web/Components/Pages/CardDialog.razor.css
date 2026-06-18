@@ -194,17 +194,19 @@
     box-sizing: border-box;
 }
 
-/* Ensure the fluent-text-area host element occupies full width and allows auto height based on rows parameter */
-fluent-text-area,
-::deep fluent-text-area {
+/* Ensure the fluent-field wrapper and fluent-textarea host element occupy full width and allow auto height */
+fluent-field,
+::deep fluent-field,
+fluent-textarea,
+::deep fluent-textarea {
     width: 100% !important;
     height: auto !important;
 }
 
-/* Enable vertical resizing for the inner textarea and specify a reasonable min-height */
-::deep fluent-text-area::part(control) {
+/* Enable vertical resizing for the inner textarea and specify a robust min-height */
+::deep fluent-textarea::part(control) {
     resize: vertical;
-    min-height: 120px;
+    min-height: 150px;
 }
 
 
