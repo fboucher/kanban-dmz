@@ -48,6 +48,15 @@ CREATE TABLE IF NOT EXISTS card_tag (
     PRIMARY KEY (CardId, Tag)
 );
 
+CREATE TABLE IF NOT EXISTS card_comment (
+    Id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    CardId UUID NOT NULL REFERENCES card(Id) ON DELETE CASCADE,
+    Content TEXT NOT NULL,
+    CreatedBy TEXT NOT NULL,
+    CreatedAt TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+
 -- Seed default board
 INSERT INTO board (Id, Name, IsPublic)
 VALUES ('00000000-0000-0000-0000-000000000001', 'Default', true)

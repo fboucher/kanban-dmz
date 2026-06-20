@@ -123,6 +123,20 @@
           "actions": ["*"]
         }
       ]
+    },
+    "CardComment": {
+      "source": "card_comment",
+      "rest": true,
+      "permissions": [
+        {
+          "role": "anonymous",
+          "actions": ["read"]
+        },
+        {
+          "role": "authenticated",
+          "actions": ["read", "create"]
+        }
+      ]
     }
   }
 }

@@ -785,4 +785,71 @@ public class KanbanService
             throw;
         }
     }
+
+    public async Task<List<CardComment>> GetCommentsAsync(Guid cardId)
+    {
+        EnsureAuthHeaders();
+        try
+        {
+            var response = await _httpClient.GetFromJsonAsync<DabResponse<CardComment>>($"CardComment?$filter=cardid eq {cardId}&$orderby=createdat");
+            return response?.Value ?? [];
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching comments for Card ID: {CardId}", cardId);
+            throw;
+        }
+    }
+
+    public async Task<CardComment?> CreateCommentAsync(Guid cardId, string content)
+    {
+        EnsureAuthHeaders();
+        string createdBy = "Unknown";
+        if (!string.IsNullOrEmpty(_tokenProvider.AccessToken))
+        {
+            try
+            {
+                var parts = _tokenProvider.AccessToken.Split('.');
+                if (parts.Length > 1)
+                {
+                    var payloadJson = Base64UrlDecode(parts[1]);
+                    using var doc = System.Text.Json.JsonDocument.Parse(payloadJson);
+                    var root = doc.RootElement;
+                    createdBy = root.TryGetProperty("preferred_username", out var nameEl) ? nameEl.GetString() ?? "Unknown" : "Unknown";
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to decode username from token in CreateCommentAsync.");
+            }
+        }
+
+        try
+        {
+            var payload = new
+            {
+                cardid = cardId,
+                content = content,
+                createdby = createdBy
+            };
+            var response = await _httpClient.PostAsJsonAsync("CardComment", payload);
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<DabResponse<CardComment>>();
+                return result?.Value.FirstOrDefault();
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                _logger.LogError("Error creating comment via DAB. Status: {Status}, Error: {Error}", response.StatusCode, error);
+                return null;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating comment for Card ID: {CardId}", cardId);
+            throw;
+        }
+    }
 }
+

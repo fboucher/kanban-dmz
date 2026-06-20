@@ -2,6 +2,9 @@
 @using KanbanDmz.Domain
 @using KanbanDmz.Web.Components.Pages
 @using KanbanDmz.Web.Helpers
+@using Microsoft.AspNetCore.Components.Authorization
+@using KanbanDmz.Web.Services
+@inject KanbanService KanbanService
 
 <FluentDialogBody Class="fluent-dialog-body-override">
     <TitleTemplate>
@@ -267,6 +270,63 @@
                 </div>
             </FluentStack>
         }
+
+        @if (Content.Id != Guid.Empty)
+        {
+            <div class="comments-section" style="margin-top: 24px; border-top: 1px solid var(--neutral-stroke-divider-rest); padding-top: 20px; width: 100%;">
+                <span class="section-label" style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                    <FluentIcon Value="@(new Icons.Regular.Size16.Comment())" Color="Color.Primary" /> Comments (@_comments.Count)
+                </span>
+
+                @if (_loadingComments && _comments.Count == 0)
+                {
+                    <FluentSpinner Style="margin: 20px auto;" />
+                }
+                else if (_comments.Count == 0)
+                {
+                    <div style="color: var(--neutral-foreground-hint); font-style: italic; margin-bottom: 15px; padding: 12px; background-color: var(--neutral-fill-input-rest); border-radius: 6px;">
+                        No comments yet. Be the first to start the discussion!
+                    </div>
+                }
+                else
+                {
+                    <div class="comments-list" style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 15px; max-height: 300px; overflow-y: auto; padding-right: 4px;">
+                        @foreach (var comment in _comments)
+                        {
+                            <div class="comment-bubble" style="background-color: var(--neutral-fill-input-rest); border: 1px solid var(--neutral-stroke-rest); border-radius: 8px; overflow: hidden; display: flex; flex-direction: column;">
+                                <div class="comment-header" style="background-color: var(--neutral-fill-secondary-rest); padding: 8px 12px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--neutral-stroke-divider-rest); font-size: 0.8rem; color: var(--neutral-foreground-hint);">
+                                    <div style="display: flex; align-items: center; gap: 8px;">
+                                        <span style="font-weight: 600; color: var(--neutral-foreground-rest);">@comment.CreatedBy</span>
+                                        <span>commented</span>
+                                    </div>
+                                    <span>@comment.CreatedAt.ToLocalTime().ToString("g")</span>
+                                </div>
+                                <div class="comment-body" style="padding: 12px; font-size: 0.9rem; line-height: 1.5; white-space: pre-wrap; color: var(--neutral-foreground-rest);">@comment.Content</div>
+                            </div>
+                        }
+                    </div>
+                }
+
+                @if (Content.IsAuthenticated)
+                {
+                    <div class="add-comment-container" style="display: flex; flex-direction: column; gap: 8px; margin-top: 15px;">
+                        <FluentTextArea @bind-Value="_newCommentContent"
+                                        Rows="3"
+                                        Style="width: 100%;"
+                                        Placeholder="Write a comment..."
+                                        aria-label="Add Comment content" />
+                        <div style="display: flex; justify-content: flex-end;">
+                            <FluentButton Appearance="ButtonAppearance.Primary"
+                                          IconStart="@(new Icons.Regular.Size16.Send())"
+                                          OnClick="AddCommentAsync"
+                                          Disabled="@(string.IsNullOrWhiteSpace(_newCommentContent) || _submittingComment)">
+                                Add Comment
+                            </FluentButton>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
     </ChildContent>
     <ActionTemplate>
         @if (Content.IsViewMode)
@@ -298,6 +358,14 @@
 
     [CascadingParameter]
     public IDialogInstance DialogInstance { get; set; } = default!;
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthStateTask { get; set; }
+
+    private List<CardComment> _comments = [];
+    private bool _loadingComments = false;
+    private string _newCommentContent = string.Empty;
+    private bool _submittingComment = false;
 
     private string? _activeDescriptionTabId = "write-tab";
 
@@ -353,7 +421,7 @@
     private string _backupTags = string.Empty;
     private string? _backupColor;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         if (!string.IsNullOrWhiteSpace(Content.Color))
         {
@@ -361,6 +429,52 @@
             _hasCustomColor = true;
         }
         CreateBackup();
+
+        if (Content.Id != Guid.Empty)
+        {
+            await LoadCommentsAsync();
+        }
+    }
+
+    private async Task LoadCommentsAsync()
+    {
+        _loadingComments = true;
+        try
+        {
+            _comments = await KanbanService.GetCommentsAsync(Content.Id);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Error loading comments: " + ex.Message);
+        }
+        finally
+        {
+            _loadingComments = false;
+        }
+    }
+
+    private async Task AddCommentAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_newCommentContent) || _submittingComment) return;
+
+        _submittingComment = true;
+        try
+        {
+            var createdComment = await KanbanService.CreateCommentAsync(Content.Id, _newCommentContent.Trim());
+            if (createdComment != null)
+            {
+                _newCommentContent = string.Empty;
+                await LoadCommentsAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Error adding comment: " + ex.Message);
+        }
+        finally
+        {
+            _submittingComment = false;
+        }
     }
 
     private void CreateBackup()
