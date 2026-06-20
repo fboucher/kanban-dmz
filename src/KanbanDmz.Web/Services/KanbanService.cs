@@ -10,6 +10,7 @@ public class KanbanService
     private readonly HttpClient _httpClient;
     private readonly UserTokenProvider _tokenProvider;
     private readonly ILogger<KanbanService> _logger;
+    private string? _currentUserDisplayName;
 
     public KanbanService(HttpClient httpClient, ILogger<KanbanService> logger, UserTokenProvider? tokenProvider = null)
     {
@@ -39,6 +40,7 @@ public class KanbanService
 
                     var userId = root.TryGetProperty("sub", out var subEl) ? subEl.GetString() : "unknown";
                     var userDetails = root.TryGetProperty("preferred_username", out var nameEl) ? nameEl.GetString() : "unknown";
+                    _currentUserDisplayName = userDetails;
 
                     var principalObj = new
                     {
@@ -804,25 +806,7 @@ public class KanbanService
     public async Task<CardComment?> CreateCommentAsync(Guid cardId, string content)
     {
         EnsureAuthHeaders();
-        string createdBy = "Unknown";
-        if (!string.IsNullOrEmpty(_tokenProvider.AccessToken))
-        {
-            try
-            {
-                var parts = _tokenProvider.AccessToken.Split('.');
-                if (parts.Length > 1)
-                {
-                    var payloadJson = Base64UrlDecode(parts[1]);
-                    using var doc = System.Text.Json.JsonDocument.Parse(payloadJson);
-                    var root = doc.RootElement;
-                    createdBy = root.TryGetProperty("preferred_username", out var nameEl) ? nameEl.GetString() ?? "Unknown" : "Unknown";
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to decode username from token in CreateCommentAsync.");
-            }
-        }
+        string createdBy = _currentUserDisplayName ?? "Unknown";
 
         try
         {

@@ -130,7 +130,14 @@
       "permissions": [
         {
           "role": "anonymous",
-          "actions": ["read"]
+          "actions": [
+            {
+              "action": "read",
+              "policy": {
+                "database": "@item.ispublic eq true"
+              }
+            }
+          ]
         },
         {
           "role": "authenticated",

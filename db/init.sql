@@ -53,8 +53,40 @@ CREATE TABLE IF NOT EXISTS card_comment (
     CardId UUID NOT NULL REFERENCES card(Id) ON DELETE CASCADE,
     Content TEXT NOT NULL,
     CreatedBy TEXT NOT NULL,
-    CreatedAt TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    CreatedAt TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    IsPublic BOOLEAN NOT NULL DEFAULT true
 );
+
+-- Trigger to sync IsPublic on comment insert
+CREATE OR REPLACE FUNCTION sync_comment_ispublic_on_insert()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.IsPublic := COALESCE((SELECT IsPublic FROM card WHERE Id = NEW.CardId), true);
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE TRIGGER trg_sync_comment_ispublic_on_insert
+BEFORE INSERT ON card_comment
+FOR EACH ROW
+EXECUTE FUNCTION sync_comment_ispublic_on_insert();
+
+-- Trigger to sync IsPublic on card update
+CREATE OR REPLACE FUNCTION sync_comments_on_card_update()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF OLD.IsPublic IS DISTINCT FROM NEW.IsPublic THEN
+        UPDATE card_comment SET IsPublic = NEW.IsPublic WHERE CardId = NEW.Id;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE TRIGGER trg_sync_comments_on_card_update
+AFTER UPDATE ON card
+FOR EACH ROW
+EXECUTE FUNCTION sync_comments_on_card_update();
+
 
 
 -- Seed default board

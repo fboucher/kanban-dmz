@@ -119,4 +119,61 @@ public class CommentTests
         Assert.Equal(HttpMethod.Post, request.Method);
         Assert.Equal("/CardComment", request.RequestUri!.AbsolutePath);
     }
+
+    [Fact]
+    public async Task GetCommentsAsync_ApiReturnsEmpty_ReturnsEmptyList()
+    {
+        var fakeHandler = new FakeHttpMessageHandler();
+        var httpClient = new HttpClient(fakeHandler) { BaseAddress = new Uri("http://fake-api/") };
+        var service = new KanbanService(httpClient, NullLogger<KanbanService>.Instance);
+
+        var cardId = Guid.NewGuid();
+
+        fakeHandler.ResponseFunc = (req) =>
+        {
+            if (req.Method == HttpMethod.Get && req.RequestUri!.PathAndQuery.Contains($"cardid%20eq%20{cardId}"))
+            {
+                var responseObj = new DabResponse<CardComment> { Value = [] };
+                return new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent(JsonSerializer.Serialize(responseObj), System.Text.Encoding.UTF8, "application/json")
+                };
+            }
+            return new HttpResponseMessage(HttpStatusCode.NotFound);
+        };
+
+        var result = await service.GetCommentsAsync(cardId);
+
+        Assert.NotNull(result);
+        Assert.Empty(result);
+        Assert.Single(fakeHandler.Requests);
+    }
+
+    [Fact]
+    public async Task CreateCommentAsync_ApiReturnsError_ReturnsNull()
+    {
+        var fakeHandler = new FakeHttpMessageHandler();
+        var httpClient = new HttpClient(fakeHandler) { BaseAddress = new Uri("http://fake-api/") };
+        var service = new KanbanService(httpClient, NullLogger<KanbanService>.Instance);
+
+        var cardId = Guid.NewGuid();
+        var commentContent = "Nice progress!";
+
+        fakeHandler.ResponseFunc = (req) =>
+        {
+            if (req.Method == HttpMethod.Post && req.RequestUri!.AbsolutePath == "/CardComment")
+            {
+                return new HttpResponseMessage(HttpStatusCode.BadRequest)
+                {
+                    Content = new StringContent("{\"error\":\"Validation failed\"}", System.Text.Encoding.UTF8, "application/json")
+                };
+            }
+            return new HttpResponseMessage(HttpStatusCode.NotFound);
+        };
+
+        var result = await service.CreateCommentAsync(cardId, commentContent);
+
+        Assert.Null(result);
+        Assert.Single(fakeHandler.Requests);
+    }
 }
