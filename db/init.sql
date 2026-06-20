@@ -65,6 +65,8 @@ CREATE TABLE IF NOT EXISTS card_image (
     IsPrivate BOOLEAN NOT NULL DEFAULT false
 );
 
+CREATE UNIQUE INDEX IF NOT EXISTS uq_card_single_feature ON card_image (CardId) WHERE IsFeatureImage = true;
+
 -- Trigger to ensure only one feature image per card exists
 CREATE OR REPLACE FUNCTION handle_single_feature_image()
 RETURNS TRIGGER AS $$

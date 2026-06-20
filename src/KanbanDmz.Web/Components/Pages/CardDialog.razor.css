@@ -202,6 +202,144 @@
     transform: scale(1.05);
 }
 
+.image-gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 10px;
+    margin-top: 8px;
+}
+
+.gallery-item {
+    position: relative;
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid var(--neutral-stroke-rest);
+    aspect-ratio: 1.5;
+    background-color: var(--neutral-fill-secondary-rest);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.gallery-item-badges {
+    position: absolute;
+    bottom: 4px;
+    left: 4px;
+    right: 4px;
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    pointer-events: none;
+}
+
+.badge-cover {
+    background: rgba(0, 120, 212, 0.85);
+    color: white;
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-size: 0.65rem;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.badge-private {
+    background: rgba(216, 57, 28, 0.85);
+    color: white;
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-size: 0.65rem;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.edit-images-section {
+    grid-column: span 2;
+    border-top: 1px solid var(--neutral-stroke-divider-rest);
+    padding-top: 15px;
+    margin-top: 10px;
+}
+
+.edit-gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 12px;
+    margin-bottom: 15px;
+}
+
+.edit-gallery-item {
+    border: 1px solid var(--neutral-stroke-rest);
+    border-radius: 6px;
+    overflow: hidden;
+    background: var(--neutral-fill-input-rest);
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.edit-gallery-image-wrapper {
+    width: 100%;
+    aspect-ratio: 1.5;
+    overflow: hidden;
+    background: var(--neutral-fill-secondary-rest);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+}
+
+.edit-badge-cover {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    background: #0078d4;
+    color: white;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.edit-badge-private {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    background: #d8391c;
+    color: white;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.edit-gallery-controls {
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    background: var(--neutral-fill-input-rest);
+}
+
+.upload-container {
+    border: 1px dashed var(--neutral-stroke-rest);
+    padding: 12px;
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    background: var(--neutral-fill-input-rest);
+}
+
 
 
 

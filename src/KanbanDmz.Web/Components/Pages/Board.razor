@@ -380,10 +380,10 @@
                 {
                     if (resultModel.Images != null && resultModel.Images.Any())
                     {
-                        foreach (var img in resultModel.Images)
-                        {
-                            await KanbanService.AddCardImageAsync(newCard.Id, img.ImageUrl, img.IsPrivate, img.IsFeatureImage);
-                        }
+                        var uploadTasks = resultModel.Images.Select(img =>
+                            KanbanService.AddCardImageAsync(newCard.Id, img.ImageUrl, img.IsPrivate, img.IsFeatureImage)
+                        ).ToList();
+                        await Task.WhenAll(uploadTasks);
                     }
                     await KanbanService.UpdateCardTagsAsync(newCard.Id, ParseTags(resultModel.Tags));
                     await LoadBoardAsync();
