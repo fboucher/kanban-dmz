@@ -35,6 +35,7 @@ public class CardDialogModel
     public string AssignedTo { get; set; } = string.Empty;
     public bool IsPublic { get; set; } = true;
     public string? ImageUrl { get; set; }
+    public List<CardImage> Images { get; set; } = [];
     public string Tags { get; set; } = string.Empty;
     public string? Color { get; set; }
     public bool IsEdit { get; set; }

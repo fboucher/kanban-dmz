@@ -309,4 +309,62 @@ public class IntegrationTests : IClassFixture<DabTestFixture>
         Assert.NotNull(privateCommentsResponse);
         Assert.Empty(privateCommentsResponse.Value);
     }
+
+    [Fact]
+    public async Task CardImages_PrivacyPolicies_Enforced()
+    {
+        // 1. Arrange clients
+        using var seedClient = new HttpClient { BaseAddress = new Uri(_fixture.DabBaseUrl) };
+        AuthenticateDirectClient(seedClient);
+        using var anonymousClient = new HttpClient { BaseAddress = new Uri(_fixture.DabBaseUrl) };
+
+        // 2. Create board, column, and card
+        var boardResponse = await seedClient.PostAsJsonAsync("Board", new { name = "Images Test Board", ispublic = true });
+        var board = (await boardResponse.Content.ReadFromJsonAsync<DabResponse<Board>>())!.Value[0];
+
+        var columnResponse = await seedClient.PostAsJsonAsync("Column", new { boardid = board.Id, name = "Images Col", sortorder = 0 });
+        var column = (await columnResponse.Content.ReadFromJsonAsync<DabResponse<Column>>())!.Value[0];
+
+        var cardResponse = await seedClient.PostAsJsonAsync("Card", new
+        {
+            boardid = board.Id,
+            columnid = column.Id,
+            title = "Images Card",
+            publicdescription = "Markdown desc",
+            categoryid = 1,
+            ispublic = true
+        });
+        var card = (await cardResponse.Content.ReadFromJsonAsync<DabResponse<Card>>())!.Value[0];
+
+        // 3. Post public and private images
+        await seedClient.PostAsJsonAsync("CardImage", new
+        {
+            cardid = card.Id,
+            imageurl = "http://example.com/public.jpg",
+            isprivate = false,
+            isfeatureimage = true
+        });
+
+        await seedClient.PostAsJsonAsync("CardImage", new
+        {
+            cardid = card.Id,
+            imageurl = "http://example.com/private.jpg",
+            isprivate = true,
+            isfeatureimage = false
+        });
+
+        // 4. Fetch card images as anonymous user (should only see the public one)
+        var anonymousImagesResponse = await anonymousClient.GetFromJsonAsync<DabResponse<CardImage>>($"CardImage?$filter=cardid eq {card.Id}");
+        Assert.NotNull(anonymousImagesResponse);
+        Assert.Single(anonymousImagesResponse.Value);
+        Assert.Equal("http://example.com/public.jpg", anonymousImagesResponse.Value[0].ImageUrl);
+        Assert.False(anonymousImagesResponse.Value[0].IsPrivate);
+
+        // 5. Fetch card images as authenticated user (should see both)
+        var authenticatedImagesResponse = await seedClient.GetFromJsonAsync<DabResponse<CardImage>>($"CardImage?$filter=cardid eq {card.Id}");
+        Assert.NotNull(authenticatedImagesResponse);
+        Assert.Equal(2, authenticatedImagesResponse.Value.Count);
+        Assert.Contains(authenticatedImagesResponse.Value, img => img.ImageUrl == "http://example.com/public.jpg");
+        Assert.Contains(authenticatedImagesResponse.Value, img => img.ImageUrl == "http://example.com/private.jpg");
+    }
 }

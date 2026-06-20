@@ -12,7 +12,8 @@ public static class BoardMapper
         IEnumerable<Card>? cards,
         IEnumerable<Category>? categories,
         IEnumerable<CardTag>? tags,
-        IEnumerable<Tag>? allTags = null)
+        IEnumerable<Tag>? allTags = null,
+        IEnumerable<CardImage>? images = null)
     {
         if (board == null)
         {
@@ -39,6 +40,14 @@ public static class BoardMapper
                 }).ToList()
             );
 
+        var cardImagesMap = (images ?? Array.Empty<CardImage>())
+            .Where(img => img != null)
+            .GroupBy(img => img.CardId)
+            .ToDictionary(
+                g => g.Key,
+                g => g.ToList()
+            );
+
         var columnDtos = (columns ?? Array.Empty<Column>())
             .Where(c => c != null)
             .OrderBy(c => c.SortOrder)
@@ -50,19 +59,23 @@ public static class BoardMapper
                 Color = c.Color,
                 Cards = (cards ?? Array.Empty<Card>())
                     .Where(card => card != null && card.ColumnId == c.Id)
-                    .Select(card => new CardDetailDto
-                    {
-                        Id = card.Id,
-                        Title = card.Title,
-                        PublicDescription = card.PublicDescription,
-                        PrivateDescription = card.PrivateDescription,
-                        CategoryName = categoriesMap.TryGetValue(card.CategoryId, out var cat) ? cat.Name : "Uncategorized",
-                        CategoryColor = categoriesMap.TryGetValue(card.CategoryId, out var catCol) ? catCol.Color : null,
-                        Tags = tagsGrouped.TryGetValue(card.Id, out var cardTags) ? cardTags : new List<TagDto>(),
-                        AssignedTo = card.AssignedTo,
-                        IsPublic = card.IsPublic,
-                        ImageUrl = card.ImageUrl,
-                        Color = card.Color
+                    .Select(card => {
+                        var cardImgs = cardImagesMap.TryGetValue(card.Id, out var imgs) ? imgs : new List<CardImage>();
+                        var featureImg = cardImgs.FirstOrDefault(img => img.IsFeatureImage);
+                        return new CardDetailDto
+                        {
+                            Id = card.Id,
+                            Title = card.Title,
+                            PublicDescription = card.PublicDescription,
+                            PrivateDescription = card.PrivateDescription,
+                            CategoryName = categoriesMap.TryGetValue(card.CategoryId, out var cat) ? cat.Name : "Uncategorized",
+                            CategoryColor = categoriesMap.TryGetValue(card.CategoryId, out var catCol) ? catCol.Color : null,
+                            Tags = tagsGrouped.TryGetValue(card.Id, out var cardTags) ? cardTags : new List<TagDto>(),
+                            AssignedTo = card.AssignedTo,
+                            IsPublic = card.IsPublic,
+                            ImageUrl = featureImg?.ImageUrl ?? card.ImageUrl,
+                            Color = card.Color
+                        };
                     })
                     .ToList()
             })

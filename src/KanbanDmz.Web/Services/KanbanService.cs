@@ -92,6 +92,7 @@ public class KanbanService
             var categoriesResponse = await _httpClient.GetFromJsonAsync<DabResponse<Category>>("Category");
             var tagsResponse = await _httpClient.GetFromJsonAsync<DabResponse<CardTag>>("CardTag");
             var allTagsResponse = await _httpClient.GetFromJsonAsync<DabResponse<Tag>>("Tag");
+            var imagesResponse = await _httpClient.GetFromJsonAsync<DabResponse<CardImage>>("CardImage");
 
             var boardDetail = BoardMapper.MapToDetail(
                 board,
@@ -99,7 +100,8 @@ public class KanbanService
                 cardsResponse?.Value,
                 categoriesResponse?.Value,
                 tagsResponse?.Value,
-                allTagsResponse?.Value
+                allTagsResponse?.Value,
+                imagesResponse?.Value
             );
 
             return boardDetail;
@@ -832,6 +834,133 @@ public class KanbanService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error creating comment for Card ID: {CardId}", cardId);
+            throw;
+        }
+    }
+
+    public async Task<List<CardImage>> GetCardImagesAsync(Guid cardId)
+    {
+        EnsureAuthHeaders();
+        try
+        {
+            var response = await _httpClient.GetFromJsonAsync<DabResponse<CardImage>>($"CardImage?$filter=cardid eq {cardId}");
+            return response?.Value ?? [];
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching images for Card ID: {CardId}", cardId);
+            throw;
+        }
+    }
+
+    public async Task<CardImage?> AddCardImageAsync(Guid cardId, string imageUrl, bool isPrivate, bool isFeatureImage)
+    {
+        EnsureAuthHeaders();
+        try
+        {
+            var payload = new
+            {
+                cardid = cardId,
+                imageurl = imageUrl,
+                isprivate = isPrivate,
+                isfeatureimage = isFeatureImage
+            };
+            var response = await _httpClient.PostAsJsonAsync("CardImage", payload);
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<DabResponse<CardImage>>();
+                return result?.Value.FirstOrDefault();
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                _logger.LogError("Error adding card image via DAB. Status: {Status}, Error: {Error}", response.StatusCode, error);
+                return null;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error adding image for Card ID: {CardId}", cardId);
+            throw;
+        }
+    }
+
+    public async Task<bool> DeleteCardImageAsync(Guid imageId)
+    {
+        EnsureAuthHeaders();
+        try
+        {
+            var response = await _httpClient.DeleteAsync($"CardImage/id/{imageId}");
+            if (response.IsSuccessStatusCode)
+            {
+                return true;
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                _logger.LogError("Error deleting card image via DAB. Status: {Status}, Error: {Error}", response.StatusCode, error);
+                return false;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting card image ID: {ImageId}", imageId);
+            throw;
+        }
+    }
+
+    public async Task<bool> ToggleImagePrivacyAsync(Guid imageId, bool isPrivate)
+    {
+        EnsureAuthHeaders();
+        try
+        {
+            var payload = new
+            {
+                isprivate = isPrivate
+            };
+            var response = await _httpClient.PatchAsJsonAsync($"CardImage/id/{imageId}", payload);
+            if (response.IsSuccessStatusCode)
+            {
+                return true;
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                _logger.LogError("Error patching card image privacy via DAB. Status: {Status}, Error: {Error}", response.StatusCode, error);
+                return false;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error toggling card image privacy for ID: {ImageId}", imageId);
+            throw;
+        }
+    }
+
+    public async Task<bool> SetFeatureImageAsync(Guid cardId, Guid imageId, bool isFeature)
+    {
+        EnsureAuthHeaders();
+        try
+        {
+            var payload = new
+            {
+                isfeatureimage = isFeature
+            };
+            var response = await _httpClient.PatchAsJsonAsync($"CardImage/id/{imageId}", payload);
+            if (response.IsSuccessStatusCode)
+            {
+                return true;
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                _logger.LogError("Error setting card feature image via DAB. Status: {Status}, Error: {Error}", response.StatusCode, error);
+                return false;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error setting feature image status to {IsFeature} for Card ID: {CardId}, Image ID: {ImageId}", isFeature, cardId, imageId);
             throw;
         }
     }

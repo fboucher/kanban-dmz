@@ -146,4 +146,43 @@ public class BoardMapperTests
         Assert.Equal("", card2.AssignedTo);
         Assert.Null(card2.ImageUrl);
     }
+
+    [Fact]
+    public void MapToDetail_ShouldSetImageUrlToFeatureImage_WhenFeatureImageExists()
+    {
+        // Arrange
+        var board = new Board { Id = Guid.NewGuid(), Name = "Board" };
+        var colId = Guid.NewGuid();
+        var columns = new List<Column>
+        {
+            new() { Id = colId, BoardId = board.Id, Name = "Backlog", SortOrder = 0 }
+        };
+
+        var cardId = Guid.NewGuid();
+        var cards = new List<Card>
+        {
+            new()
+            {
+                Id = cardId,
+                BoardId = board.Id,
+                ColumnId = colId,
+                Title = "Test Card",
+                ImageUrl = "http://example.com/fallback.png"
+            }
+        };
+
+        var images = new List<CardImage>
+        {
+            new() { Id = Guid.NewGuid(), CardId = cardId, ImageUrl = "http://example.com/regular.png", IsFeatureImage = false },
+            new() { Id = Guid.NewGuid(), CardId = cardId, ImageUrl = "http://example.com/feature.png", IsFeatureImage = true }
+        };
+
+        // Act
+        var result = BoardMapper.MapToDetail(board, columns, cards, null, null, null, images);
+
+        // Assert
+        Assert.NotNull(result);
+        var mappedCard = result.Columns.First().Cards.First();
+        Assert.Equal("http://example.com/feature.png", mappedCard.ImageUrl);
+    }
 }
