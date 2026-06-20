@@ -1,5 +1,6 @@
 # Kanban DMZ
 
+[![GitHub Release](https://img.shields.io/github/v/release/fboucher/kanban-dmz?logo=github)](https://github.com/fboucher/kanban-dmz/releases)
 [![Build main](https://img.shields.io/github/actions/workflow/status/fboucher/kanban-dmz/test.yml?branch=main&label=build%20(main)&logo=github)](https://github.com/fboucher/kanban-dmz/actions/workflows/test.yml?query=branch%3Amain)
 [![Build dev](https://img.shields.io/github/actions/workflow/status/fboucher/kanban-dmz/test.yml?branch=dev&label=build%20(dev)&logo=github)](https://github.com/fboucher/kanban-dmz/actions/workflows/test.yml?query=branch%3Adev)
 [![Docker Hub Version](https://img.shields.io/docker/v/fboucher/kanban-dmz-web?logo=docker&logoColor=white)](https://hub.docker.com/repository/docker/fboucher/kanban-dmz-web)
