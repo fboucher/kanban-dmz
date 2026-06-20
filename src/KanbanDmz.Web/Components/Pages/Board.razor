@@ -1,15 +1,17 @@
 @page "/board"
+@page "/board/{boardId:guid}"
 @using Microsoft.FluentUI.AspNetCore.Components
 @using KanbanDmz.Domain.DTOs
 @using KanbanDmz.Web.Services
 @using Microsoft.AspNetCore.Components.Authorization
 @using KanbanDmz.Domain
+@using KanbanDmz.Web.Helpers
 @inject KanbanService KanbanService
 @inject IDialogService DialogService
 
 <PageTitle>Kanban Board</PageTitle>
 
-<div class="board-container">
+<div class="board-container" style="@(string.IsNullOrWhiteSpace(_board?.BackgroundColor) ? "" : $"background-color: {_board.BackgroundColor};")">
     @if (_loading)
     {
         <div class="state-container">
@@ -29,123 +31,151 @@
     {
         <div class="board-header">
             <div class="board-title-group">
-                <h1 class="board-title">@_board.Name Board</h1>
-                <FluentBadge Appearance="BadgeAppearance.Outline">
-                    @(_board.IsPublic ? "Public View" : "Private View")
-                </FluentBadge>
+                <h1 class="board-title">@_board.Name</h1>
+                @if (_isAuthenticated)
+                {
+                    <FluentButton Appearance="ButtonAppearance.Subtle"
+                                  IconStart="@(new Icons.Regular.Size20.Settings())"
+                                  OnClick="OpenBoardSettingsDialog"
+                                  Title="Board Settings"
+                                  aria-label="Board Settings" />
+                }
             </div>
             @if (_isAuthenticated)
             {
-                <FluentButton Appearance="ButtonAppearance.Outline" IconStart="@(new Icons.Regular.Size16.Settings())" OnClick="OpenColumnManagerDialog" Style="margin-right: 8px;">
-                    Manage Columns
-                </FluentButton>
                 <FluentButton Appearance="ButtonAppearance.Primary" IconStart="@(new Icons.Regular.Size16.Add())" OnClick="@(() => OpenCreateCardDialog())">
                     Add Card
                 </FluentButton>
             }
         </div>
 
-        <div class="board-canvas">
-            @foreach (var col in _board.Columns)
-            {
-                <div class="board-column">
-                    <div class="column-header">
-                        <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" Style="width: 100%;">
-                            <h3 class="column-title">@col.Name</h3>
-                            <span class="column-count-badge">@col.Cards.Count</span>
-                            <FluentSpacer />
-                            @if (_isAuthenticated)
+        <FluentDragContainer TItem="CardDetailDto" OnDropEnd="HandleDropEnd">
+            <div class="board-canvas">
+                @foreach (var col in _board.Columns)
+                {
+                    <div class="board-column" style="@(string.IsNullOrWhiteSpace(col.Color) ? "" : $"border-top: 4px solid {col.Color};")">
+                        <div class="column-header">
+                            <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" Style="width: 100%;">
+                                <h3 class="column-title">@col.Name</h3>
+                                <span class="column-count-badge">@col.Cards.Count</span>
+                                <FluentSpacer />
+                                @if (_isAuthenticated)
+                                {
+                                    <FluentButton Appearance="ButtonAppearance.Subtle" IconEnd="@(new Icons.Regular.Size16.Add())" OnClick="@(() => OpenCreateCardDialog(col.Id))" Title="Add Card to Column" aria-label="Add Card to Column" />
+                                }
+                            </FluentStack>
+                        </div>
+
+                        <FluentDropZone TItem="CardDetailDto" Id="@col.Id.ToString()" Droppable="_isAuthenticated" Draggable="false" Class="column-cards" Style="min-height: 150px; flex: 1; display: flex; flex-direction: column; gap: 0.85rem; width: 100%;">
+                            @foreach (var card in col.Cards)
                             {
-                                <FluentButton Appearance="ButtonAppearance.Subtle" IconEnd="@(new Icons.Regular.Size16.Add())" OnClick="@(() => OpenCreateCardDialog(col.Id))" Title="Add Card to Column" aria-label="Add Card to Column" />
-                            }
-                        </FluentStack>
-                    </div>
-
-                    <div class="column-cards">
-                        @foreach (var card in col.Cards)
-                        {
-                            <FluentCard Class="@($"kanban-card {(_isAuthenticated ? "clickable-card" : "")}")" @onclick="@(() => OnCardClicked(card))">
-                                <h4 class="card-title">@card.Title</h4>
-
-                                @if (!string.IsNullOrWhiteSpace(card.PublicDescription))
-                                {
-                                    <p class="card-description">@card.PublicDescription</p>
-                                }
-                                else
-                                {
-                                    <p class="card-description card-description-placeholder">No description</p>
-                                }
-
-                                @if (_isAuthenticated && !string.IsNullOrWhiteSpace(card.PrivateDescription))
-                                {
-                                    <div class="card-private-description">
-                                        <span class="private-badge">Private</span>@card.PrivateDescription
+                                <FluentCard Class="kanban-card clickable-card" Style="@GetCardStyle(card)">
+                                    <div class="card-header-bar" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; border-bottom: 1px dashed var(--neutral-stroke-divider-rest); padding-bottom: 4px;">
+                                        @if (_isAuthenticated)
+                                        {
+                                            <FluentDropZone TItem="CardDetailDto" Item="card" Draggable="true" Droppable="false" Style="cursor: grab; display: inline-flex; align-items: center; justify-content: center; padding: 2px 6px; border-radius: 4px; background: var(--neutral-fill-input-rest); border: 1px solid var(--neutral-stroke-rest);" Title="Drag this handle to move the card">
+                                                <FluentIcon Value="@(new Icons.Regular.Size16.ReOrder())" Color="Color.Default" />
+                                                <span style="font-size: 0.75rem; margin-left: 4px; color: var(--neutral-foreground-hint); font-weight: 500;">Drag Handle</span>
+                                            </FluentDropZone>
+                                        }
+                                        else
+                                        {
+                                            <span style="font-size: 0.75rem; color: var(--neutral-foreground-hint); font-weight: 500;">Card Details</span>
+                                        }
                                     </div>
-                                }
 
-                                <div class="card-meta-row">
-                                    <span class="category-badge @GetCategoryClass(card.CategoryName)">@card.CategoryName</span>
-                                    
-                                    @if (card.Tags != null && card.Tags.Any())
-                                    {
-                                        <div class="tags-list">
-                                            @foreach (var tag in card.Tags)
+                                    <div @onclick="@(() => OnCardClicked(card))" style="cursor: pointer;">
+                                        @if (!string.IsNullOrWhiteSpace(card.ImageUrl))
+                                        {
+                                            <div class="card-image-wrapper" style="width: 100%; max-height: 150px; overflow: hidden; border-radius: 4px; margin-bottom: 8px; display: flex; justify-content: center; align-items: center; background-color: var(--neutral-fill-secondary-rest);">
+                                                <img src="@card.ImageUrl" style="max-width: 100%; max-height: 150px; object-fit: cover;" alt="Card Image" />
+                                            </div>
+                                        }
+                                         <h4 class="card-title">@card.Title</h4>
+
+                                         @if (!string.IsNullOrWhiteSpace(card.PublicDescription))
+                                         {
+                                             <p class="card-description">@MarkdownHelper.ToPlainText(card.PublicDescription)</p>
+                                         }
+                                         else
+                                         {
+                                             <p class="card-description card-description-placeholder">No description</p>
+                                         }
+
+                                        @if (_isAuthenticated && !string.IsNullOrWhiteSpace(card.PrivateDescription))
+                                        {
+                                            <div class="card-private-description">
+                                                <span class="private-badge">Private</span>@card.PrivateDescription
+                                            </div>
+                                        }
+
+                                        <div class="card-meta-row">
+                                            <FluentBadge Style="@(string.IsNullOrWhiteSpace(card.CategoryColor) ? "" : $"--badge-fill-color: {card.CategoryColor}; color: {GetContrastColor(card.CategoryColor)};")" Color="@GetCategoryColor(card.CategoryName)" Appearance="BadgeAppearance.Tint">@card.CategoryName</FluentBadge>
+                                            
+                                            @if (card.Tags != null && card.Tags.Any())
                                             {
-                                                <span class="tag-pill">#@tag</span>
+                                                <div class="tags-list">
+                                                    @foreach (var tag in card.Tags)
+                                                    {
+                                                        <span class="tag-pill" style="@(string.IsNullOrWhiteSpace(tag.Color) ? "" : $"background-color: {tag.Color}; color: {GetContrastColor(tag.Color)}; border-color: {AdjustColorBrightness(tag.Color, -0.15)};")">#@tag.Name</span>
+                                                    }
+                                                </div>
                                             }
                                         </div>
-                                    }
-                                </div>
+                                    </div>
 
-                                <div class="card-footer">
-                                    @if (!string.IsNullOrWhiteSpace(card.AssignedTo))
-                                    {
-                                        <div class="assignee-group">
-                                            <span class="assignee-avatar" title="Assigned to @card.AssignedTo">@GetInitials(card.AssignedTo)</span>
-                                            <span>@card.AssignedTo</span>
-                                        </div>
-                                    }
-                                    else
-                                    {
-                                        <div class="assignee-group">
-                                            <span class="assignee-unassigned">Unassigned</span>
-                                        </div>
-                                    }
-                                    @if (_isAuthenticated)
-                                    {
-                                        <span @onclick:stopPropagation="true">
-                                            <FluentButton Appearance="ButtonAppearance.Subtle"
-                                                          OnClick="@(() => ToggleVisibility(card.Id))"
-                                                          Title="@(card.IsPublic ? "Make Private" : "Make Public")"
-                                                          aria-label="@(card.IsPublic ? "Make Private" : "Make Public")">
-                                                @if (card.IsPublic)
-                                                {
-                                                    <FluentIcon Value="@(new Icons.Regular.Size16.Eye())" Color="Color.Default" />
-                                                }
-                                                else
-                                                {
-                                                    <FluentIcon Value="@(new Icons.Regular.Size16.EyeOff())" Color="Color.Primary" />
-                                                }
-                                            </FluentButton>
-                                        </span>
-                                    }
-                                    else
-                                    {
-                                        <span class="card-public-indicator" title="Visible to everyone">
-                                            <FluentIcon Value="@(new Icons.Regular.Size16.Eye())" Color="Color.Default" />
-                                        </span>
-                                    }
-                                </div>
-                            </FluentCard>
-                        }
+                                    <div class="card-footer">
+                                        @if (!string.IsNullOrWhiteSpace(card.AssignedTo))
+                                        {
+                                            <div class="assignee-group">
+                                                <span class="assignee-avatar" title="Assigned to @card.AssignedTo">@GetInitials(card.AssignedTo)</span>
+                                                <span>@card.AssignedTo</span>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <div class="assignee-group">
+                                                <span class="assignee-unassigned">Unassigned</span>
+                                            </div>
+                                        }
+                                        @if (_isAuthenticated)
+                                        {
+                                            <span @onclick:stopPropagation="true">
+                                                <FluentButton Appearance="ButtonAppearance.Subtle"
+                                                              OnClick="@(() => ToggleVisibility(card.Id))"
+                                                              Title="@(card.IsPublic ? "Make Private" : "Make Public")"
+                                                              aria-label="@(card.IsPublic ? "Make Private" : "Make Public")">
+                                                    @if (card.IsPublic)
+                                                    {
+                                                        <FluentIcon Value="@(new Icons.Regular.Size16.Eye())" Color="Color.Default" />
+                                                    }
+                                                    else
+                                                    {
+                                                        <FluentIcon Value="@(new Icons.Regular.Size16.EyeOff())" Color="Color.Primary" />
+                                                    }
+                                                </FluentButton>
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="card-public-indicator" title="Visible to everyone">
+                                                <FluentIcon Value="@(new Icons.Regular.Size16.Eye())" Color="Color.Default" />
+                                            </span>
+                                        }
+                                    </div>
+                                </FluentCard>
+                            }
+                        </FluentDropZone>
                     </div>
-                </div>
-            }
-        </div>
+                }
+            </div>
+        </FluentDragContainer>
     }
 </div>
-
 @code {
+    [Parameter]
+    public Guid? BoardId { get; set; }
+
     [CascadingParameter]
     private Task<AuthenticationState>? AuthStateTask { get; set; }
 
@@ -161,6 +191,10 @@
             var authState = await AuthStateTask;
             _isAuthenticated = authState.User.Identity?.IsAuthenticated ?? false;
         }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
         await LoadBoardAsync();
     }
 
@@ -203,7 +237,7 @@
     {
         var options = new DialogOptions
         {
-            Width = "500px",
+            Width = "750px",
             Modal = true,
             PreventDismissOnEscape = true,
             Parameters = new Dictionary<string, object?>
@@ -217,7 +251,7 @@
 
     private async Task OnCardClicked(CardDetailDto cardDto)
     {
-        if (!_isAuthenticated || _board == null) return;
+        if (_board == null) return;
 
         try
         {
@@ -236,8 +270,12 @@
                 CategoryId = categoryId,
                 AssignedTo = cardDto.AssignedTo,
                 IsPublic = cardDto.IsPublic,
-                Tags = string.Join(", ", cardDto.Tags),
+                ImageUrl = cardDto.ImageUrl,
+                Tags = string.Join(", ", cardDto.Tags.Select(t => t.Name)),
+                Color = cardDto.Color,
                 IsEdit = true,
+                IsViewMode = true,
+                IsAuthenticated = _isAuthenticated,
                 Columns = GetColumnList(),
                 Categories = categories
             };
@@ -270,7 +308,9 @@
                         PrivateDescription = resultModel.PrivateDescription,
                         CategoryId = resultModel.CategoryId,
                         AssignedTo = resultModel.AssignedTo,
-                        IsPublic = resultModel.IsPublic
+                        IsPublic = resultModel.IsPublic,
+                        ImageUrl = resultModel.ImageUrl,
+                        Color = resultModel.Color
                     };
 
                     var success = await KanbanService.UpdateCardAsync(card);
@@ -305,9 +345,12 @@
                 BoardId = _board.Id,
                 ColumnId = columnId ?? GetColumnList().FirstOrDefault()?.Id ?? Guid.Empty,
                 IsEdit = false,
+                IsViewMode = false,
+                IsAuthenticated = true,
                 Columns = GetColumnList(),
                 Categories = categories,
-                IsPublic = true
+                IsPublic = true,
+                Color = null
             };
 
             var dialogResult = await ShowCardDialogAsync(model);
@@ -327,12 +370,21 @@
                     CategoryId = resultModel.CategoryId,
                     AssignedTo = resultModel.AssignedTo,
                     IsPublic = resultModel.IsPublic,
+                    ImageUrl = resultModel.ImageUrl,
+                    Color = resultModel.Color,
                     CreatedBy = createdBy ?? "Unknown"
                 };
 
                 var newCard = await KanbanService.CreateCardAsync(card);
                 if (newCard != null)
                 {
+                    if (resultModel.Images != null && resultModel.Images.Any())
+                    {
+                        var uploadTasks = resultModel.Images.Select(img =>
+                            KanbanService.AddCardImageAsync(newCard.Id, img.ImageUrl, img.IsPrivate, img.IsFeatureImage)
+                        ).ToList();
+                        await Task.WhenAll(uploadTasks);
+                    }
                     await KanbanService.UpdateCardTagsAsync(newCard.Id, ParseTags(resultModel.Tags));
                     await LoadBoardAsync();
                 }
@@ -348,29 +400,6 @@
         }
     }
 
-    private async Task OpenColumnManagerDialog()
-    {
-        if (!_isAuthenticated || _board == null) return;
-
-        var options = new DialogOptions
-        {
-            Width = "600px",
-            Modal = true,
-            PreventDismissOnEscape = true,
-            Parameters = new Dictionary<string, object?>
-            {
-                { "Board", _board }
-            }
-        };
-
-        var dialogResult = await DialogService.ShowDialogAsync<ColumnManagerDialog>(options);
-
-        if (!dialogResult.Cancelled && dialogResult.Value is bool hasChanges && hasChanges)
-        {
-            await LoadBoardAsync();
-        }
-    }
-
     private async Task LoadBoardAsync()
     {
         _loading = true;
@@ -378,8 +407,8 @@
 
         try
         {
-            var defaultBoardId = new Guid("00000000-0000-0000-0000-000000000001");
-            _board = await KanbanService.GetBoardDetailAsync(defaultBoardId);
+            var targetBoardId = BoardId ?? new Guid("00000000-0000-0000-0000-000000000001");
+            _board = await KanbanService.GetBoardDetailAsync(targetBoardId);
             if (_board == null)
             {
                 _errorMessage = "Unable to load the Kanban board. The board was not found.";
@@ -400,14 +429,40 @@
         await LoadBoardAsync();
     }
 
-    private string GetCategoryClass(string categoryName)
+    private async Task HandleDropEnd(FluentDragEventArgs<CardDetailDto> args)
+    {
+        if (args.Source?.Item == null || args.Target == null) return;
+
+        var card = args.Source.Item;
+        if (Guid.TryParse(args.Target.Id, out var targetColumnId))
+        {
+            try
+            {
+                var success = await KanbanService.UpdateCardColumnAsync(card.Id, targetColumnId);
+                if (success)
+                {
+                    await LoadBoardAsync();
+                }
+                else
+                {
+                    _errorMessage = "Failed to update card column.";
+                }
+            }
+            catch (Exception ex)
+            {
+                _errorMessage = $"An error occurred during drag and drop: {ex.Message}";
+            }
+        }
+    }
+
+    private BadgeColor GetCategoryColor(string categoryName)
     {
         return categoryName.ToLowerInvariant() switch
         {
-            "bug" => "badge-bug",
-            "feature" => "badge-feature",
-            "chore" => "badge-chore",
-            _ => "badge-unknown"
+            "bug" => BadgeColor.Danger,
+            "feature" => BadgeColor.Brand,
+            "chore" => BadgeColor.Warning,
+            _ => BadgeColor.Subtle
         };
     }
 
@@ -417,5 +472,128 @@
         var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
         if (parts.Length == 1) return parts[0][0].ToString().ToUpperInvariant();
         return (parts[0][0].ToString() + parts[^1][0].ToString()).ToUpperInvariant();
+    }
+
+    private string GetCardStyle(CardDetailDto card)
+    {
+        string? hexColor = null;
+        if (!string.IsNullOrWhiteSpace(card.Color))
+        {
+            hexColor = card.Color;
+        }
+        else if (!string.IsNullOrWhiteSpace(card.CategoryColor))
+        {
+            hexColor = card.CategoryColor;
+        }
+
+        if (!string.IsNullOrWhiteSpace(hexColor))
+        {
+            string textCol = GetContrastColor(hexColor);
+            string borderCol = AdjustColorBrightness(hexColor, -0.15);
+            return $"background-color: {hexColor}; border-color: {borderCol}; --neutral-foreground-rest: {textCol}; --neutral-foreground-hint: {textCol}; --neutral-stroke-divider-rest: {borderCol};";
+        }
+        return "";
+    }
+
+    private string GetContrastColor(string hex)
+    {
+        if (string.IsNullOrWhiteSpace(hex)) return "var(--neutral-foreground-rest)";
+        try
+        {
+            hex = hex.TrimStart('#');
+            if (hex.Length == 3)
+            {
+                hex = new string(new[] { hex[0], hex[0], hex[1], hex[1], hex[2], hex[2] });
+            }
+            if (hex.Length != 6) return "var(--neutral-foreground-rest)";
+            int r = Convert.ToInt32(hex.Substring(0, 2), 16);
+            int g = Convert.ToInt32(hex.Substring(2, 2), 16);
+            int b = Convert.ToInt32(hex.Substring(4, 2), 16);
+            double yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000.0;
+            return (yiq >= 128) ? "#1a1a1a" : "#ffffff";
+        }
+        catch
+        {
+            return "var(--neutral-foreground-rest)";
+        }
+    }
+
+    private string AdjustColorBrightness(string hex, double factor)
+    {
+        if (string.IsNullOrWhiteSpace(hex)) return "var(--neutral-stroke-card-rest)";
+        try
+        {
+            hex = hex.TrimStart('#');
+            if (hex.Length == 3)
+            {
+                hex = new string(new[] { hex[0], hex[0], hex[1], hex[1], hex[2], hex[2] });
+            }
+            if (hex.Length != 6) return hex;
+            int r = Convert.ToInt32(hex.Substring(0, 2), 16);
+            int g = Convert.ToInt32(hex.Substring(2, 2), 16);
+            int b = Convert.ToInt32(hex.Substring(4, 2), 16);
+
+            if (factor < 0)
+            {
+                factor = 1 + factor;
+                r = (int)(r * factor);
+                g = (int)(g * factor);
+                b = (int)(b * factor);
+            }
+            else
+            {
+                r = (int)(r + ((255 - r) * factor));
+                g = (int)(g + ((255 - g) * factor));
+                b = (int)(b + ((255 - b) * factor));
+            }
+
+            r = Math.Clamp(r, 0, 255);
+            g = Math.Clamp(g, 0, 255);
+            b = Math.Clamp(b, 0, 255);
+
+            return $"#{r:X2}{g:X2}{b:X2}";
+        }
+        catch
+        {
+            return hex;
+        }
+    }
+
+    private async Task OpenBoardSettingsDialog()
+    {
+        if (!_isAuthenticated || _board == null) return;
+
+        try
+        {
+            var boardCopy = new KanbanDmz.Domain.Board
+            {
+                Id = _board.Id,
+                Name = _board.Name,
+                IsPublic = _board.IsPublic,
+                BackgroundColor = _board.BackgroundColor
+            };
+
+            var options = new DialogOptions
+            {
+                Width = "700px",
+                Modal = true,
+                Parameters = new Dictionary<string, object?>
+                {
+                    { "Board", boardCopy },
+                    { "BoardDetail", _board }
+                }
+            };
+
+            var result = await DialogService.ShowDialogAsync<BoardSettingsDialog>(options);
+
+            if (!result.Cancelled && result.Value is true)
+            {
+                await LoadBoardAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"An error occurred: {ex.Message}";
+        }
     }
 }

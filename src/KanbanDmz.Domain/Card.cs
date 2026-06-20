@@ -13,4 +13,6 @@ public class Card
     public string CreatedBy { get; set; } = string.Empty;
     public string AssignedTo { get; set; } = string.Empty;
     public bool IsPublic { get; set; } = true;
+    public string? ImageUrl { get; set; }
+    public string? Color { get; set; }
 }

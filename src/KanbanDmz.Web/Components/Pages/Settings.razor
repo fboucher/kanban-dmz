@@ -1,0 +1,636 @@
+@page "/settings"
+@attribute [Authorize]
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.FluentUI.AspNetCore.Components
+@using Microsoft.AspNetCore.Components.Authorization
+@using KanbanDmz.Domain
+@using KanbanDmz.Web.Services
+@inject KanbanService KanbanService
+@inject IDialogService DialogService
+
+<PageTitle>Category & Tag Management</PageTitle>
+
+<div class="categories-page-container">
+    <div class="page-header">
+        <div class="header-content">
+            <h1 class="page-title">Category & Tag Management</h1>
+            <p class="page-subtitle">Configure colors and labels for your categories and tags.</p>
+        </div>
+    </div>
+
+    @if (_loading)
+    {
+        <div class="state-container">
+            <FluentSpinner />
+            <FluentLabel Typo="Typography.Body">Loading classifications...</FluentLabel>
+        </div>
+    }
+    else
+    {
+        @if (!string.IsNullOrEmpty(_errorMessage))
+        {
+            <div class="alert-message alert-error">
+                <FluentIcon Value="@(new Icons.Regular.Size20.ErrorCircle())" Color="Color.Error" />
+                <div class="alert-content">
+                    <span class="alert-text">@_errorMessage</span>
+                    @if (_referencingCards != null && _referencingCards.Any())
+                    {
+                        <ul class="cards-list">
+                            @foreach (var card in _referencingCards)
+                            {
+                                <li><strong>@card.Title</strong> (in column: @(_columnsMap.TryGetValue(card.ColumnId, out var colName) ? colName : "Unknown"))</li>
+                            }
+                        </ul>
+                    }
+                </div>
+                <FluentButton Appearance="ButtonAppearance.Subtle" IconEnd="@(new Icons.Regular.Size16.Dismiss())" OnClick="@(() => ClearError())" Class="dismiss-btn" />
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(_successMessage))
+        {
+            <div class="alert-message alert-success">
+                <FluentIcon Value="@(new Icons.Regular.Size20.CheckmarkCircle())" Color="Color.Success" />
+                <span class="alert-text">@_successMessage</span>
+                <FluentSpacer />
+                <FluentButton Appearance="ButtonAppearance.Subtle" IconEnd="@(new Icons.Regular.Size16.Dismiss())" OnClick="@(() => _successMessage = null)" Class="dismiss-btn" />
+            </div>
+        }
+
+        <FluentTabs ActiveTabId="@_activeTabId" ActiveTabIdChanged="@OnTabChanged">
+            <FluentTab Id="categories" Label="Categories">
+                <div class="management-grid" style="margin-top: 1rem;">
+                    <!-- Add Category Card -->
+                    <FluentCard Class="management-card form-card">
+                        <div class="card-header-group">
+                            <FluentIcon Value="@(new Icons.Regular.Size20.AddCircle())" Color="Color.Primary" />
+                            <h3 class="card-section-title">Add New Category</h3>
+                        </div>
+                        <div class="form-content">
+                            <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" Gap="15px">
+                                <FluentTextInput @bind-Value="_newCategoryName"
+                                                 Placeholder="Enter category name (e.g. Bug, Feature, Chore)"
+                                                 Required="true"
+                                                 Style="flex-grow: 1;"
+                                                 @onkeydown="@OnAddKeyDown" />
+                                <FluentColorPicker @bind-Value="_newCategoryColor" Label="Color" />
+                                <FluentButton Appearance="ButtonAppearance.Primary" 
+                                              OnClick="AddCategoryAsync" 
+                                              Disabled="@string.IsNullOrWhiteSpace(_newCategoryName)">
+                                    Add Category
+                                </FluentButton>
+                            </FluentStack>
+                        </div>
+                    </FluentCard>
+
+                    <!-- Categories List Card -->
+                    <FluentCard Class="management-card list-card">
+                        <div class="card-header-group">
+                            <FluentIcon Value="@(new Icons.Regular.Size20.Tag())" Color="Color.Primary" />
+                            <h3 class="card-section-title">Categories Lookup Table</h3>
+                        </div>
+                        
+                        @if (_categories == null || !_categories.Any())
+                        {
+                            <p class="empty-state">No categories defined yet.</p>
+                        }
+                        else
+                        {
+                            <div class="categories-list">
+                                @foreach (var category in _categories)
+                                {
+                                    <div class="category-row @(_editingCategoryId == category.Id ? "editing-row" : "")">
+                                        @if (_editingCategoryId == category.Id)
+                                        {
+                                            <div style="display: flex; align-items: center; gap: 10px; width: 100%;">
+                                                <FluentTextInput @bind-Value="_editingCategoryName"
+                                                                 Required="true"
+                                                                 Style="flex-grow: 1; max-width: 400px;"
+                                                                 @onkeydown="@((e) => OnEditKeyDown(e, category))" />
+                                                <FluentColorPicker @bind-Value="_editingCategoryColor" Label="Color" Style="margin-top: -10px;" />
+                                                <FluentStack Orientation="Orientation.Horizontal" Gap="8px" Style="margin-left: auto;">
+                                                    <FluentButton Appearance="ButtonAppearance.Primary" 
+                                                                  IconStart="@(new Icons.Regular.Size16.Checkmark())" 
+                                                                  OnClick="@(() => SaveRenameAsync(category))"
+                                                                  Disabled="@string.IsNullOrWhiteSpace(_editingCategoryName)"
+                                                                  Title="Save Changes" />
+                                                    <FluentButton Appearance="ButtonAppearance.Outline" 
+                                                                  IconStart="@(new Icons.Regular.Size16.Dismiss())" 
+                                                                  OnClick="CancelRename"
+                                                                  Title="Cancel" />
+                                                </FluentStack>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <div class="category-info">
+                                                <FluentBadge Style="@($"--badge-fill-color: {category.Color ?? "#E0E0E0"}; color: {GetContrastColor(category.Color ?? "#E0E0E0")};")" Appearance="BadgeAppearance.Tint">@category.Name</FluentBadge>
+                                            </div>
+                                            <FluentStack Orientation="Orientation.Horizontal" Gap="8px" Style="margin-left: auto;">
+                                                <FluentButton Appearance="ButtonAppearance.Subtle" 
+                                                              IconStart="@(new Icons.Regular.Size16.Edit())" 
+                                                              OnClick="@(() => StartRename(category))"
+                                                              Title="Rename Category & Edit Color" />
+                                                <FluentButton Appearance="ButtonAppearance.Subtle" 
+                                                              IconStart="@(new Icons.Regular.Size16.Delete())" 
+                                                              OnClick="@(() => ConfirmDeleteAsync(category))"
+                                                              Title="Delete Category" />
+                                            </FluentStack>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </FluentCard>
+                </div>
+            </FluentTab>
+
+            <FluentTab Id="tags" Label="Tags">
+                <div class="management-grid" style="margin-top: 1rem;">
+                    <!-- Add Tag Card -->
+                    <FluentCard Class="management-card form-card">
+                        <div class="card-header-group">
+                            <FluentIcon Value="@(new Icons.Regular.Size20.AddCircle())" Color="Color.Primary" />
+                            <h3 class="card-section-title">Add New Tag</h3>
+                        </div>
+                        <div class="form-content">
+                            <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" Gap="15px">
+                                <FluentTextInput @bind-Value="_newTagName"
+                                                 Placeholder="Enter tag name (e.g. ui, backend, test)"
+                                                 Required="true"
+                                                 Style="flex-grow: 1;"
+                                                 @onkeydown="@OnAddTagKeyDown" />
+                                <FluentColorPicker @bind-Value="_newTagColor" Label="Color" />
+                                <FluentButton Appearance="ButtonAppearance.Primary" 
+                                              OnClick="AddTagAsync" 
+                                              Disabled="@string.IsNullOrWhiteSpace(_newTagName)">
+                                    Add Tag
+                                </FluentButton>
+                            </FluentStack>
+                        </div>
+                    </FluentCard>
+
+                    <!-- Tags List Card -->
+                    <FluentCard Class="management-card list-card">
+                        <div class="card-header-group">
+                            <FluentIcon Value="@(new Icons.Regular.Size20.Tag())" Color="Color.Primary" />
+                            <h3 class="card-section-title">Tags Lookup Table</h3>
+                        </div>
+                        
+                        @if (_tags == null || !_tags.Any())
+                        {
+                            <p class="empty-state">No tags defined yet.</p>
+                        }
+                        else
+                        {
+                            <div class="categories-list">
+                                @foreach (var tag in _tags)
+                                {
+                                    <div class="category-row @(_editingTagNameKey == tag.Name ? "editing-row" : "")">
+                                        @if (_editingTagNameKey == tag.Name)
+                                        {
+                                            <div style="display: flex; align-items: center; gap: 10px; width: 100%;">
+                                                <FluentLabel Style="font-weight: 600;">@tag.Name</FluentLabel>
+                                                <FluentColorPicker @bind-Value="_editingTagColor" Label="Color" Style="margin-top: -10px;" />
+                                                <FluentStack Orientation="Orientation.Horizontal" Gap="8px" Style="margin-left: auto;">
+                                                    <FluentButton Appearance="ButtonAppearance.Primary" 
+                                                                  IconStart="@(new Icons.Regular.Size16.Checkmark())" 
+                                                                  OnClick="@(() => SaveTagColorAsync(tag))"
+                                                                  Title="Save Changes" />
+                                                    <FluentButton Appearance="ButtonAppearance.Outline" 
+                                                                  IconStart="@(new Icons.Regular.Size16.Dismiss())" 
+                                                                  OnClick="CancelTagEdit"
+                                                                  Title="Cancel" />
+                                                </FluentStack>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <div class="category-info">
+                                                <span class="tag-pill" style="@($"background-color: {tag.Color}; color: {GetContrastColor(tag.Color)}; border: 1px solid {AdjustColorBrightness(tag.Color, -0.15)}; padding: 4px 8px; border-radius: 6px; font-weight: 500; font-size: 0.85rem;")">#@tag.Name</span>
+                                            </div>
+                                            <FluentStack Orientation="Orientation.Horizontal" Gap="8px" Style="margin-left: auto;">
+                                                <FluentButton Appearance="ButtonAppearance.Subtle" 
+                                                              IconStart="@(new Icons.Regular.Size16.Edit())" 
+                                                              OnClick="@(() => StartTagEdit(tag))"
+                                                              Title="Edit Tag Color" />
+                                                <FluentButton Appearance="ButtonAppearance.Subtle" 
+                                                              IconStart="@(new Icons.Regular.Size16.Delete())" 
+                                                              OnClick="@(() => ConfirmDeleteTagAsync(tag))"
+                                                              Title="Delete Tag" />
+                                            </FluentStack>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </FluentCard>
+                </div>
+            </FluentTab>
+        </FluentTabs>
+    }
+</div>
+
+@code {
+    private List<Category> _categories = [];
+    private List<Tag> _tags = [];
+    private bool _loading = true;
+    private string? _errorMessage;
+    private string? _successMessage;
+    private string _activeTabId = "categories";
+
+    private string _newCategoryName = "";
+    private string _newCategoryColor = "#E0E0E0";
+    private int? _editingCategoryId;
+    private string _editingCategoryName = "";
+    private string _editingCategoryColor = "";
+
+    private string _newTagName = "";
+    private string _newTagColor = "#E0E0E0";
+    private string? _editingTagNameKey;
+    private string _editingTagColor = "";
+
+    private List<Card> _referencingCards = [];
+    private Dictionary<Guid, string> _columnsMap = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        _loading = true;
+        _errorMessage = null;
+        try
+        {
+            _categories = await KanbanService.GetCategoriesAsync();
+            _tags = await KanbanService.GetTagsAsync();
+            // Load the board to map column IDs to names for referencing cards info
+            var defaultBoardId = new Guid("00000000-0000-0000-0000-000000000001");
+            var board = await KanbanService.GetBoardDetailAsync(defaultBoardId);
+            if (board != null)
+            {
+                _columnsMap = board.Columns.ToDictionary(c => c.Id, c => c.Name);
+            }
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Failed to load data: {ex.Message}";
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void OnTabChanged(string tabId)
+    {
+        _activeTabId = tabId;
+        ClearError();
+        _successMessage = null;
+    }
+
+    private void ClearError()
+    {
+        _errorMessage = null;
+        _referencingCards.Clear();
+    }
+
+    private async Task OnAddKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(_newCategoryName))
+        {
+            await AddCategoryAsync();
+        }
+    }
+
+    private async Task AddCategoryAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_newCategoryName)) return;
+
+        ClearError();
+        _successMessage = null;
+        var name = _newCategoryName.Trim();
+
+        // Check if duplicate locally first for fast feedback
+        if (_categories.Any(c => c.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
+        {
+            _errorMessage = $"A category named '{name}' already exists.";
+            return;
+        }
+
+        try
+        {
+            var created = await KanbanService.CreateCategoryAsync(name, _newCategoryColor);
+            if (created != null)
+            {
+                _successMessage = $"Category '{name}' created successfully.";
+                _newCategoryName = "";
+                _newCategoryColor = "#E0E0E0";
+                await LoadDataAsync();
+            }
+            else
+            {
+                _errorMessage = $"Failed to create category '{name}'.";
+            }
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"An error occurred: {ex.Message}";
+        }
+    }
+
+    private void StartRename(Category category)
+    {
+        _editingCategoryId = category.Id;
+        _editingCategoryName = category.Name;
+        _editingCategoryColor = category.Color ?? "#E0E0E0";
+        ClearError();
+        _successMessage = null;
+    }
+
+    private void CancelRename()
+    {
+        _editingCategoryId = null;
+        _editingCategoryName = "";
+        _editingCategoryColor = "";
+    }
+
+    private async Task OnEditKeyDown(KeyboardEventArgs e, Category category)
+    {
+        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(_editingCategoryName))
+        {
+            await SaveRenameAsync(category);
+        }
+        else if (e.Key == "Escape")
+        {
+            CancelRename();
+        }
+    }
+
+    private async Task SaveRenameAsync(Category category)
+    {
+        if (string.IsNullOrWhiteSpace(_editingCategoryName)) return;
+
+        ClearError();
+        _successMessage = null;
+        var newName = _editingCategoryName.Trim();
+        var newColor = _editingCategoryColor;
+
+        if (category.Name.Equals(newName, StringComparison.Ordinal) && (category.Color ?? "#E0E0E0").Equals(newColor, StringComparison.OrdinalIgnoreCase))
+        {
+            CancelRename();
+            return;
+        }
+
+        // Check duplicate name locally
+        if (_categories.Any(c => c.Id != category.Id && c.Name.Equals(newName, StringComparison.OrdinalIgnoreCase)))
+        {
+            _errorMessage = $"A category named '{newName}' already exists.";
+            return;
+        }
+
+        try
+        {
+            category.Name = newName;
+            category.Color = newColor;
+            var success = await KanbanService.UpdateCategoryAsync(category);
+            if (success)
+            {
+                _successMessage = $"Category renamed and updated successfully.";
+                CancelRename();
+                await LoadDataAsync();
+            }
+            else
+            {
+                _errorMessage = $"Failed to update category.";
+            }
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"An error occurred: {ex.Message}";
+        }
+    }
+
+    private async Task ConfirmDeleteAsync(Category category)
+    {
+        ClearError();
+        _successMessage = null;
+
+        try
+        {
+            // Check if cards reference this category
+            _referencingCards = await KanbanService.GetCardsByCategoryIdAsync(category.Id);
+            if (_referencingCards != null && _referencingCards.Count > 0)
+            {
+                _errorMessage = $"Cannot delete category '{category.Name}' because it is in use by the following {_referencingCards.Count} card(s):";
+                return;
+            }
+
+            var result = await DialogService.ShowConfirmationAsync(
+                $"Are you sure you want to delete the category '{category.Name}'?",
+                "Delete Category Confirmation",
+                "Delete",
+                "Cancel");
+
+            if (!result.Cancelled)
+            {
+                var success = await KanbanService.DeleteCategoryAsync(category.Id);
+                if (success)
+                {
+                    _successMessage = $"Category '{category.Name}' deleted successfully.";
+                    await LoadDataAsync();
+                }
+                else
+                {
+                    _errorMessage = "Failed to delete the category. Database restriction might have blocked it.";
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"An error occurred during deletion: {ex.Message}";
+        }
+    }
+
+    private async Task OnAddTagKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(_newTagName))
+        {
+            await AddTagAsync();
+        }
+    }
+
+    private async Task AddTagAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_newTagName)) return;
+
+        ClearError();
+        _successMessage = null;
+        var name = _newTagName.Trim();
+
+        if (_tags.Any(t => t.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
+        {
+            _errorMessage = $"A tag named '{name}' already exists.";
+            return;
+        }
+
+        try
+        {
+            var created = await KanbanService.CreateTagAsync(name, _newTagColor);
+            if (created != null)
+            {
+                _successMessage = $"Tag '{name}' created successfully.";
+                _newTagName = "";
+                _newTagColor = "#E0E0E0";
+                await LoadDataAsync();
+            }
+            else
+            {
+                _errorMessage = $"Failed to create tag '{name}'.";
+            }
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"An error occurred: {ex.Message}";
+        }
+    }
+
+    private void StartTagEdit(Tag tag)
+    {
+        _editingTagNameKey = tag.Name;
+        _editingTagColor = tag.Color;
+        ClearError();
+        _successMessage = null;
+    }
+
+    private void CancelTagEdit()
+    {
+        _editingTagNameKey = null;
+        _editingTagColor = "";
+    }
+
+    private async Task SaveTagColorAsync(Tag tag)
+    {
+        ClearError();
+        _successMessage = null;
+
+        try
+        {
+            var success = await KanbanService.UpdateTagColorAsync(tag.Name, _editingTagColor);
+            if (success)
+            {
+                _successMessage = $"Tag '{tag.Name}' color updated successfully.";
+                CancelTagEdit();
+                await LoadDataAsync();
+            }
+            else
+            {
+                _errorMessage = "Failed to update tag color.";
+            }
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"An error occurred: {ex.Message}";
+        }
+    }
+
+    private async Task ConfirmDeleteTagAsync(Tag tag)
+    {
+        ClearError();
+        _successMessage = null;
+
+        try
+        {
+            var result = await DialogService.ShowConfirmationAsync(
+                $"Are you sure you want to delete the tag '{tag.Name}'? This will remove it from all cards.",
+                "Delete Tag Confirmation",
+                "Delete",
+                "Cancel");
+
+            if (!result.Cancelled)
+            {
+                var success = await KanbanService.DeleteTagAsync(tag.Name);
+                if (success)
+                {
+                    _successMessage = $"Tag '{tag.Name}' deleted successfully.";
+                    await LoadDataAsync();
+                }
+                else
+                {
+                    _errorMessage = "Failed to delete the tag.";
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"An error occurred during deletion: {ex.Message}";
+        }
+    }
+
+    private string GetContrastColor(string hex)
+    {
+        if (string.IsNullOrWhiteSpace(hex)) return "#000000";
+        try
+        {
+            hex = hex.TrimStart('#');
+            if (hex.Length == 3)
+            {
+                hex = new string(new[] { hex[0], hex[0], hex[1], hex[1], hex[2], hex[2] });
+            }
+            if (hex.Length != 6) return "#000000";
+            int r = Convert.ToInt32(hex.Substring(0, 2), 16);
+            int g = Convert.ToInt32(hex.Substring(2, 2), 16);
+            int b = Convert.ToInt32(hex.Substring(4, 2), 16);
+            double yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000.0;
+            return (yiq >= 128) ? "#000000" : "#FFFFFF";
+        }
+        catch
+        {
+            return "#000000";
+        }
+    }
+
+    private string AdjustColorBrightness(string hex, double factor)
+    {
+        if (string.IsNullOrWhiteSpace(hex)) return "#E0E0E0";
+        try
+        {
+            hex = hex.TrimStart('#');
+            if (hex.Length == 3)
+            {
+                hex = new string(new[] { hex[0], hex[0], hex[1], hex[1], hex[2], hex[2] });
+            }
+            if (hex.Length != 6) return hex;
+            int r = Convert.ToInt32(hex.Substring(0, 2), 16);
+            int g = Convert.ToInt32(hex.Substring(2, 2), 16);
+            int b = Convert.ToInt32(hex.Substring(4, 2), 16);
+
+            if (factor < 0)
+            {
+                factor = 1 + factor;
+                r = (int)(r * factor);
+                g = (int)(g * factor);
+                b = (int)(b * factor);
+            }
+            else
+            {
+                r = (int)(r + ((255 - r) * factor));
+                g = (int)(g + ((255 - g) * factor));
+                b = (int)(b + ((255 - b) * factor));
+            }
+
+            r = Math.Clamp(r, 0, 255);
+            g = Math.Clamp(g, 0, 255);
+            b = Math.Clamp(b, 0, 255);
+
+            return $"#{r:X2}{g:X2}{b:X2}";
+        }
+        catch
+        {
+            return hex;
+        }
+    }
+}

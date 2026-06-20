@@ -3,19 +3,22 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE TABLE IF NOT EXISTS board (
     Id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     Name TEXT NOT NULL,
-    IsPublic BOOLEAN NOT NULL DEFAULT true
+    IsPublic BOOLEAN NOT NULL DEFAULT true,
+    BackgroundColor TEXT NULL
 );
 
 CREATE TABLE IF NOT EXISTS kanban_column (
     Id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     BoardId UUID NOT NULL REFERENCES board(Id) ON DELETE CASCADE,
     Name TEXT NOT NULL,
-    SortOrder INT NOT NULL DEFAULT 0
+    SortOrder INT NOT NULL DEFAULT 0,
+    Color TEXT NULL
 );
 
 CREATE TABLE IF NOT EXISTS category (
     Id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    Name TEXT NOT NULL UNIQUE
+    Name TEXT NOT NULL UNIQUE,
+    Color TEXT NULL
 );
 
 CREATE TABLE IF NOT EXISTS card (
@@ -29,14 +32,91 @@ CREATE TABLE IF NOT EXISTS card (
     CreatedAt TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     CreatedBy TEXT NOT NULL DEFAULT '',
     AssignedTo TEXT NOT NULL DEFAULT '',
-    IsPublic BOOLEAN NOT NULL DEFAULT true
+    IsPublic BOOLEAN NOT NULL DEFAULT true,
+    ImageUrl TEXT NULL,
+    Color TEXT NULL
+);
+
+CREATE TABLE IF NOT EXISTS tag (
+    Name TEXT PRIMARY KEY,
+    Color TEXT NOT NULL DEFAULT '#E0E0E0'
 );
 
 CREATE TABLE IF NOT EXISTS card_tag (
     CardId UUID NOT NULL REFERENCES card(Id) ON DELETE CASCADE,
-    Tag TEXT NOT NULL,
+    Tag TEXT NOT NULL REFERENCES tag(Name) ON DELETE CASCADE,
     PRIMARY KEY (CardId, Tag)
 );
+
+CREATE TABLE IF NOT EXISTS card_comment (
+    Id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    CardId UUID NOT NULL REFERENCES card(Id) ON DELETE CASCADE,
+    Content TEXT NOT NULL,
+    CreatedBy TEXT NOT NULL,
+    CreatedAt TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    IsPublic BOOLEAN NOT NULL DEFAULT true
+);
+
+CREATE TABLE IF NOT EXISTS card_image (
+    Id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    CardId UUID NOT NULL REFERENCES card(Id) ON DELETE CASCADE,
+    ImageUrl TEXT NOT NULL,
+    IsFeatureImage BOOLEAN NOT NULL DEFAULT false,
+    IsPrivate BOOLEAN NOT NULL DEFAULT false
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_card_single_feature ON card_image (CardId) WHERE IsFeatureImage = true;
+
+-- Trigger to ensure only one feature image per card exists
+CREATE OR REPLACE FUNCTION handle_single_feature_image()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.IsFeatureImage = true THEN
+        UPDATE card_image
+        SET IsFeatureImage = false
+        WHERE CardId = NEW.CardId AND Id <> NEW.Id AND IsFeatureImage = true;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE TRIGGER trg_single_feature_image
+BEFORE INSERT OR UPDATE OF IsFeatureImage ON card_image
+FOR EACH ROW
+EXECUTE FUNCTION handle_single_feature_image();
+
+
+-- Trigger to sync IsPublic on comment insert
+CREATE OR REPLACE FUNCTION sync_comment_ispublic_on_insert()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.IsPublic := COALESCE((SELECT IsPublic FROM card WHERE Id = NEW.CardId), true);
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE TRIGGER trg_sync_comment_ispublic_on_insert
+BEFORE INSERT ON card_comment
+FOR EACH ROW
+EXECUTE FUNCTION sync_comment_ispublic_on_insert();
+
+-- Trigger to sync IsPublic on card update
+CREATE OR REPLACE FUNCTION sync_comments_on_card_update()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF OLD.IsPublic IS DISTINCT FROM NEW.IsPublic THEN
+        UPDATE card_comment SET IsPublic = NEW.IsPublic WHERE CardId = NEW.Id;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE TRIGGER trg_sync_comments_on_card_update
+AFTER UPDATE ON card
+FOR EACH ROW
+EXECUTE FUNCTION sync_comments_on_card_update();
+
+
 
 -- Seed default board
 INSERT INTO board (Id, Name, IsPublic)
@@ -54,8 +134,23 @@ VALUES
 ON CONFLICT (Id) DO NOTHING;
 
 -- Seed default categories
-INSERT INTO category (Name)
-VALUES ('Bug'), ('Feature'), ('Chore')
+INSERT INTO category (Name, Color)
+VALUES 
+    ('Bug', '#e3008c'), 
+    ('Feature', '#0078d4'), 
+    ('Chore', '#008272')
+ON CONFLICT (Name) DO NOTHING;
+
+-- Seed default tags
+INSERT INTO tag (Name, Color)
+VALUES
+    ('security', '#f8d7da'),
+    ('refactor', '#d1ecf1'),
+    ('frontend', '#d4edda'),
+    ('ui', '#fff3cd'),
+    ('backend', '#d1ecf1'),
+    ('db', '#e2e3e5'),
+    ('setup', '#cce5ff')
 ON CONFLICT (Name) DO NOTHING;
 
 -- Seed default cards

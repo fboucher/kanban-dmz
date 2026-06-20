@@ -12,7 +12,7 @@ on:
       tag_name:
         description: 'Tag name to build/publish'
         required: true
-        default: '0.1'
+        default: '0.2'
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'

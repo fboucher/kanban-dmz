@@ -11,7 +11,9 @@ public static class BoardMapper
         IEnumerable<Column>? columns,
         IEnumerable<Card>? cards,
         IEnumerable<Category>? categories,
-        IEnumerable<CardTag>? tags)
+        IEnumerable<CardTag>? tags,
+        IEnumerable<Tag>? allTags = null,
+        IEnumerable<CardImage>? images = null)
     {
         if (board == null)
         {
@@ -20,12 +22,31 @@ public static class BoardMapper
 
         var categoriesMap = (categories ?? Array.Empty<Category>())
             .Where(c => c != null)
-            .ToDictionary(c => c.Id, c => c.Name);
+            .ToDictionary(c => c.Id, c => c);
+
+        var tagColorsMap = (allTags ?? Array.Empty<Tag>())
+            .Where(t => t != null)
+            .ToDictionary(t => t.Name, t => t.Color, StringComparer.OrdinalIgnoreCase);
 
         var tagsGrouped = (tags ?? Array.Empty<CardTag>())
             .Where(t => t != null)
             .GroupBy(t => t.CardId)
-            .ToDictionary(g => g.Key, g => g.Select(t => t.Tag).ToList());
+            .ToDictionary(
+                g => g.Key,
+                g => g.Select(t => new TagDto
+                {
+                    Name = t.Tag,
+                    Color = tagColorsMap.TryGetValue(t.Tag, out var col) ? col : "#E0E0E0"
+                }).ToList()
+            );
+
+        var cardImagesMap = (images ?? Array.Empty<CardImage>())
+            .Where(img => img != null)
+            .GroupBy(img => img.CardId)
+            .ToDictionary(
+                g => g.Key,
+                g => g.ToList()
+            );
 
         var columnDtos = (columns ?? Array.Empty<Column>())
             .Where(c => c != null)
@@ -35,18 +56,26 @@ public static class BoardMapper
                 Id = c.Id,
                 Name = c.Name,
                 SortOrder = c.SortOrder,
+                Color = c.Color,
                 Cards = (cards ?? Array.Empty<Card>())
                     .Where(card => card != null && card.ColumnId == c.Id)
-                    .Select(card => new CardDetailDto
-                    {
-                        Id = card.Id,
-                        Title = card.Title,
-                        PublicDescription = card.PublicDescription,
-                        PrivateDescription = card.PrivateDescription,
-                        CategoryName = categoriesMap.TryGetValue(card.CategoryId, out var catName) ? catName : "Uncategorized",
-                        Tags = tagsGrouped.TryGetValue(card.Id, out var cardTags) ? cardTags : new List<string>(),
-                        AssignedTo = card.AssignedTo,
-                        IsPublic = card.IsPublic
+                    .Select(card => {
+                        var cardImgs = cardImagesMap.TryGetValue(card.Id, out var imgs) ? imgs : new List<CardImage>();
+                        var featureImg = cardImgs.FirstOrDefault(img => img.IsFeatureImage);
+                        return new CardDetailDto
+                        {
+                            Id = card.Id,
+                            Title = card.Title,
+                            PublicDescription = card.PublicDescription,
+                            PrivateDescription = card.PrivateDescription,
+                            CategoryName = categoriesMap.TryGetValue(card.CategoryId, out var cat) ? cat.Name : "Uncategorized",
+                            CategoryColor = categoriesMap.TryGetValue(card.CategoryId, out var catCol) ? catCol.Color : null,
+                            Tags = tagsGrouped.TryGetValue(card.Id, out var cardTags) ? cardTags : new List<TagDto>(),
+                            AssignedTo = card.AssignedTo,
+                            IsPublic = card.IsPublic,
+                            ImageUrl = featureImg?.ImageUrl ?? card.ImageUrl,
+                            Color = card.Color
+                        };
                     })
                     .ToList()
             })
@@ -57,6 +86,7 @@ public static class BoardMapper
             Id = board.Id,
             Name = board.Name,
             IsPublic = board.IsPublic,
+            BackgroundColor = board.BackgroundColor,
             Columns = columnDtos
         };
     }

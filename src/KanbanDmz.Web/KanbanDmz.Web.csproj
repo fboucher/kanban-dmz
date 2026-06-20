@@ -9,15 +9,16 @@
     <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="10.0.9" />
     <PackageReference Include="Microsoft.FluentUI.AspNetCore.Components" Version="5.0.0-rc.3-26138.1" />
     <PackageReference Include="Microsoft.FluentUI.AspNetCore.Components.Icons" Version="4.14.2" />
+    <PackageReference Include="Markdig" Version="0.34.0" />
   </ItemGroup>
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
-    <Version>0.1.0</Version>
+    <Version>0.2.0</Version>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
     <NoWarn>$(NoWarn)</NoWarn>
   </PropertyGroup>
 
-</Project>
+ </Project>

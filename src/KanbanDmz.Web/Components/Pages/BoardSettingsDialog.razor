@@ -1,0 +1,401 @@
+@using Microsoft.FluentUI.AspNetCore.Components
+@using KanbanDmz.Domain
+@using KanbanDmz.Domain.DTOs
+@using KanbanDmz.Web.Services
+@inject KanbanService KanbanService
+@inject IDialogService DialogService
+
+<FluentDialogBody>
+    <TitleTemplate>
+        <FluentStack VerticalAlignment="VerticalAlignment.Center" Gap="8px">
+            <FluentIcon Value="@(new Icons.Regular.Size24.Settings())" Color="Color.Primary" />
+            <FluentLabel Typo="Typography.PaneHeader">Board Settings</FluentLabel>
+        </FluentStack>
+    </TitleTemplate>
+    <ChildContent>
+        <FluentTabs>
+            <FluentTab Id="board">
+                <HeaderTemplate>Board</HeaderTemplate>
+                <ChildContent>
+                    <FluentStack Orientation="Orientation.Vertical" Gap="15px" Style="width: 100%; margin-top: 15px;">
+                        @if (_errorMessage != null)
+                        {
+                            <div style="background-color: #fee2e2; color: #ef4444; border: 1px solid #fca5a5; padding: 10px; border-radius: 4px; font-weight: 500; font-size: 0.9rem; width: 100%; box-sizing: border-box;">
+                                <span>@_errorMessage</span>
+                            </div>
+                        }
+
+                        <FluentTextInput @bind-Value="Board.Name"
+                                         Label="Board Name"
+                                         Required="true"
+                                         Style="width: 100%;" />
+
+                        <FluentCheckbox @bind-Value="Board.IsPublic"
+                                        Label="Visible to Public" />
+
+                        <FluentCheckbox @bind-Value="_hasBackgroundColor"
+                                        Label="Custom Background Color" />
+
+                        @if (_hasBackgroundColor)
+                        {
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <label style="font-size: 0.9rem; font-weight: 500; color: var(--neutral-foreground-rest);">Background Color:</label>
+                                <input type="color" @bind="_backgroundColor"
+                                       style="width: 44px; height: 36px; border: 1px solid var(--neutral-stroke-rest); border-radius: 4px; padding: 2px; cursor: pointer; background: none;" />
+                                <span style="font-size: 0.85rem; color: var(--neutral-foreground-hint); font-family: monospace;">@_backgroundColor</span>
+                            </div>
+                        }
+                    </FluentStack>
+                </ChildContent>
+            </FluentTab>
+            <FluentTab Id="columns">
+                <HeaderTemplate>Columns</HeaderTemplate>
+                <ChildContent>
+                    <FluentStack Orientation="Orientation.Vertical" Gap="15px" Style="width: 100%; max-height: 450px; overflow-y: auto; margin-top: 15px;">
+
+                    @if (_columnError != null)
+                    {
+                        <div style="background-color: #fee2e2; color: #ef4444; border: 1px solid #fca5a5; padding: 10px; border-radius: 4px; margin-bottom: 15px; font-weight: 500; font-size: 0.9rem; display: flex; justify-content: space-between; align-items: center; width: 100%; box-sizing: border-box;">
+                            <span>@_columnError</span>
+                            <FluentButton Appearance="ButtonAppearance.Subtle" IconStart="@(new Icons.Regular.Size16.Dismiss())" OnClick="@(() => _columnError = null)" Style="color: #ef4444;" />
+                        </div>
+                    }
+
+                    <FluentStack Orientation="Orientation.Vertical" Gap="8px" Style="width: 100%;">
+                        @for (int i = 0; i < _columns.Count; i++)
+                        {
+                            var index = i;
+                            var col = _columns[index];
+                            var isEditing = _editingColumnId == col.Id;
+
+                            <FluentCard Style="padding: 10px; width: 100%;" MinimalStyle="true">
+                                <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" Gap="10px" Style="width: 100%;">
+                                    @if (isEditing)
+                                    {
+                                        <FluentTextInput @bind-Value="_editingName"
+                                                         Required="true"
+                                                         Label="Column Name"
+                                                         Style="flex-grow: 1;" />
+                                        <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
+                                            <span style="font-size: 0.7rem; color: var(--neutral-foreground-hint);">Color</span>
+                                            <input type="color" @bind="_editingColor"
+                                                   style="width: 36px; height: 30px; border: 1px solid var(--neutral-stroke-rest); border-radius: 4px; padding: 1px; cursor: pointer; background: none;" />
+                                        </div>
+                                        <FluentButton Appearance="ButtonAppearance.Primary"
+                                                      IconStart="@(new Icons.Regular.Size16.Checkmark())"
+                                                      OnClick="@(() => SaveRenameAsync(col))"
+                                                      Title="Save" />
+                                        <FluentButton Appearance="ButtonAppearance.Outline"
+                                                      IconStart="@(new Icons.Regular.Size16.Dismiss())"
+                                                      OnClick="CancelRename"
+                                                      Title="Cancel" />
+                                    }
+                                    else
+                                    {
+                                        <div style="display: flex; align-items: center; gap: 10px; flex-grow: 1;">
+                                            @if (!string.IsNullOrWhiteSpace(col.Color))
+                                            {
+                                                <div style="width: 16px; height: 16px; border-radius: 4px; background-color: @col.Color; border: 1px solid var(--neutral-stroke-rest); flex-shrink: 0;" title="Column Color"></div>
+                                            }
+                                            else
+                                            {
+                                                <div style="width: 16px; height: 16px; border-radius: 4px; border: 1px dashed var(--neutral-stroke-rest); flex-shrink: 0;" title="No color"></div>
+                                            }
+                                            <span style="font-weight: 600; color: var(--neutral-foreground-rest); font-size: 0.9rem;">@col.Name</span>
+                                            <span style="font-size: 0.75rem; color: var(--neutral-foreground-hint);">(order: @col.SortOrder)</span>
+                                        </div>
+
+                                        <FluentButton Appearance="ButtonAppearance.Subtle"
+                                                      IconStart="@(new Icons.Regular.Size16.ArrowUp())"
+                                                      Disabled="@(index == 0)"
+                                                      OnClick="@(() => MoveUpAsync(index))"
+                                                      Title="Move Up" />
+
+                                        <FluentButton Appearance="ButtonAppearance.Subtle"
+                                                      IconStart="@(new Icons.Regular.Size16.ArrowDown())"
+                                                      Disabled="@(index == _columns.Count - 1)"
+                                                      OnClick="@(() => MoveDownAsync(index))"
+                                                      Title="Move Down" />
+
+                                        <FluentButton Appearance="ButtonAppearance.Subtle"
+                                                      IconStart="@(new Icons.Regular.Size16.Edit())"
+                                                      OnClick="@(() => StartRename(col))"
+                                                      Title="Rename" />
+
+                                        <FluentButton Appearance="ButtonAppearance.Subtle"
+                                                      IconStart="@(new Icons.Regular.Size16.Delete())"
+                                                      OnClick="@(() => DeleteColumnAsync(col))"
+                                                      Title="Delete"
+                                                      Color="Color.Error" />
+                                    }
+                                </FluentStack>
+                            </FluentCard>
+                        }
+                    </FluentStack>
+
+                    <hr style="border: 0; border-top: 1px solid var(--neutral-stroke-divider-rest); width: 100%; margin: 10px 0;" />
+
+                    <div style="display: flex; flex-direction: column; gap: 8px; width: 100%;">
+                        <span style="font-weight: 700; font-size: 0.85rem; color: var(--neutral-foreground-rest); text-transform: uppercase; letter-spacing: 0.05em;">Add New Column</span>
+                        <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Bottom" Gap="15px" Style="width: 100%;">
+                            <FluentTextInput @bind-Value="_newColumnName"
+                                             Label="Column Name"
+                                             Placeholder="Enter column name..."
+                                             Style="flex-grow: 1;" />
+                            <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
+                                <span style="font-size: 0.7rem; color: var(--neutral-foreground-hint);">Color</span>
+                                <input type="color" @bind="_newColumnColor"
+                                       style="width: 36px; height: 30px; border: 1px solid var(--neutral-stroke-rest); border-radius: 4px; padding: 1px; cursor: pointer; background: none;" />
+                            </div>
+                            <FluentButton Appearance="ButtonAppearance.Primary"
+                                          IconStart="@(new Icons.Regular.Size16.Add())"
+                                          OnClick="AddColumnAsync"
+                                          Disabled="@(string.IsNullOrWhiteSpace(_newColumnName))">
+                                Add Column
+                            </FluentButton>
+                        </FluentStack>
+                    </div>
+                </FluentStack>
+                </ChildContent>
+            </FluentTab>
+        </FluentTabs>
+    </ChildContent>
+    <ActionTemplate>
+        <FluentButton Appearance="ButtonAppearance.Outline" OnClick="CancelAsync">Cancel</FluentButton>
+        <FluentButton Appearance="ButtonAppearance.Primary" OnClick="SaveAsync" Disabled="@(string.IsNullOrWhiteSpace(Board.Name))">Save</FluentButton>
+    </ActionTemplate>
+</FluentDialogBody>
+
+@code {
+    [Parameter]
+    public KanbanDmz.Domain.Board Board { get; set; } = default!;
+
+    [Parameter]
+    public BoardDetailDto? BoardDetail { get; set; }
+
+    [CascadingParameter]
+    public IDialogInstance DialogInstance { get; set; } = default!;
+
+    private string? _errorMessage;
+    private string _backgroundColor = "#ffffff";
+    private bool _hasBackgroundColor;
+
+    private List<Column> _columns = [];
+    private string? _newColumnName;
+    private string _newColumnColor = "#4f46e5";
+    private string? _columnError;
+    private Guid? _editingColumnId;
+    private string _editingName = string.Empty;
+    private string _editingColor = string.Empty;
+
+    protected override void OnInitialized()
+    {
+        if (!string.IsNullOrEmpty(Board.BackgroundColor))
+        {
+            _backgroundColor = Board.BackgroundColor;
+            _hasBackgroundColor = true;
+        }
+
+        if (BoardDetail != null)
+        {
+            _columns = BoardDetail.Columns.Select(c => new Column
+            {
+                Id = c.Id,
+                BoardId = BoardDetail.Id,
+                Name = c.Name,
+                SortOrder = c.SortOrder,
+                Color = c.Color
+            }).OrderBy(c => c.SortOrder).ToList();
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Board.Name)) return;
+
+        try
+        {
+            Board.BackgroundColor = _hasBackgroundColor ? _backgroundColor : null;
+            var success = await KanbanService.UpdateBoardAsync(Board);
+            if (success)
+            {
+                await DialogInstance.CloseAsync(true);
+            }
+            else
+            {
+                _errorMessage = "Failed to update board settings.";
+            }
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Error: {ex.Message}";
+        }
+    }
+
+    private async Task CancelAsync()
+    {
+        await DialogInstance.CancelAsync();
+    }
+
+    private async Task AddColumnAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_newColumnName)) return;
+
+        _columnError = null;
+        try
+        {
+            var nextSortOrder = _columns.Any() ? _columns.Max(c => c.SortOrder) + 1 : 0;
+            var column = new Column
+            {
+                BoardId = Board.Id,
+                Name = _newColumnName.Trim(),
+                SortOrder = nextSortOrder,
+                Color = _newColumnColor
+            };
+
+            var created = await KanbanService.CreateColumnAsync(column);
+            if (created != null)
+            {
+                _columns.Add(created);
+                _newColumnName = null;
+                _newColumnColor = "#4f46e5";
+            }
+            else
+            {
+                _columnError = "Failed to create the column in the database.";
+            }
+        }
+        catch (Exception ex)
+        {
+            _columnError = $"Error adding column: {ex.Message}";
+        }
+    }
+
+    private void StartRename(Column col)
+    {
+        _editingColumnId = col.Id;
+        _editingName = col.Name;
+        _editingColor = col.Color ?? "#4f46e5";
+    }
+
+    private void CancelRename()
+    {
+        _editingColumnId = null;
+        _editingName = string.Empty;
+        _editingColor = string.Empty;
+    }
+
+    private async Task SaveRenameAsync(Column col)
+    {
+        if (string.IsNullOrWhiteSpace(_editingName)) return;
+
+        _columnError = null;
+        try
+        {
+            col.Name = _editingName.Trim();
+            col.Color = _editingColor;
+            var success = await KanbanService.UpdateColumnAsync(col);
+            if (success)
+            {
+                _editingColumnId = null;
+                _editingName = string.Empty;
+                _editingColor = string.Empty;
+            }
+            else
+            {
+                _columnError = "Failed to update column name.";
+            }
+        }
+        catch (Exception ex)
+        {
+            _columnError = $"Error updating column: {ex.Message}";
+        }
+    }
+
+    private async Task MoveUpAsync(int index)
+    {
+        if (index <= 0 || index >= _columns.Count) return;
+        await SwapColumnsAsync(index, index - 1);
+    }
+
+    private async Task MoveDownAsync(int index)
+    {
+        if (index < 0 || index >= _columns.Count - 1) return;
+        await SwapColumnsAsync(index, index + 1);
+    }
+
+    private async Task SwapColumnsAsync(int indexA, int indexB)
+    {
+        _columnError = null;
+        try
+        {
+            var colA = _columns[indexA];
+            var colB = _columns[indexB];
+
+            var tempOrder = colA.SortOrder;
+            colA.SortOrder = colB.SortOrder;
+            colB.SortOrder = tempOrder;
+
+            var successA = await KanbanService.UpdateColumnAsync(colA);
+            var successB = await KanbanService.UpdateColumnAsync(colB);
+
+            if (successA && successB)
+            {
+                _columns[indexA] = colB;
+                _columns[indexB] = colA;
+            }
+            else
+            {
+                _columnError = "Failed to update column order in database.";
+                colB.SortOrder = colA.SortOrder;
+                colA.SortOrder = tempOrder;
+            }
+        }
+        catch (Exception ex)
+        {
+            _columnError = $"Error swapping columns: {ex.Message}";
+        }
+    }
+
+    private async Task DeleteColumnAsync(Column col)
+    {
+        _columnError = null;
+
+        if (BoardDetail != null)
+        {
+            var origCol = BoardDetail.Columns.FirstOrDefault(c => c.Id == col.Id);
+            if (origCol != null && origCol.Cards.Count > 0)
+            {
+                await DialogService.ShowErrorAsync("Cannot delete column because it contains cards. Move or delete the cards first.", "Delete Blocked");
+                return;
+            }
+        }
+
+        var result = await DialogService.ShowConfirmationAsync(
+            $"Are you sure you want to delete the column '{col.Name}'?",
+            "Delete Column",
+            "Delete",
+            "Cancel"
+        );
+
+        if (!result.Cancelled)
+        {
+            try
+            {
+                var success = await KanbanService.DeleteColumnAsync(col.Id);
+                if (success)
+                {
+                    _columns.Remove(col);
+                }
+                else
+                {
+                    _columnError = "Failed to delete the column.";
+                }
+            }
+            catch (Exception ex)
+            {
+                _columnError = $"Error deleting column: {ex.Message}";
+            }
+        }
+    }
+}

@@ -24,5 +24,6 @@ _Avoid_: Status, lane, swimlane, stage
 The top-level container for Cards and Columns. A Board has a visibility setting (public or private) that determines whether unauthenticated users can view it.
 
 **Visibility**:
-A property of a Board or Card that controls who can see it. A private Board requires authentication for all content. A public Board is visible to anyone, but individual Cards within it can be private, hiding their content from unauthenticated users. Every Card has two descriptions: a **public description** visible to everyone and a **private description** visible only to authenticated users.
+A property of a Board or Card that controls who can see it. A private Board requires authentication for all content. A public Board is visible to anyone, but individual Cards within it can be private, hiding their content from unauthenticated users. Every Card has two descriptions: a **public description** (written in Markdown, visible to everyone and rendered as HTML) and a **private description** (written in plain text, visible only to authenticated users).
 _Avoid_: Security level, clearance, zone
+

@@ -68,7 +68,7 @@
             {
               "action": "read",
               "fields": {
-                "include": ["id", "boardid", "columnid", "title", "publicdescription", "categoryid", "createdat", "createdby", "assignedto", "ispublic"]
+                "include": ["id", "boardid", "columnid", "title", "publicdescription", "categoryid", "createdat", "createdby", "assignedto", "ispublic", "imageurl", "color"]
               },
               "policy": {
                 "database": "@item.ispublic eq true"
@@ -103,6 +103,62 @@
         {
           "role": "anonymous",
           "actions": ["read"]
+        },
+        {
+          "role": "authenticated",
+          "actions": ["*"]
+        }
+      ]
+    },
+    "Tag": {
+      "source": "tag",
+      "rest": true,
+      "permissions": [
+        {
+          "role": "anonymous",
+          "actions": ["read"]
+        },
+        {
+          "role": "authenticated",
+          "actions": ["*"]
+        }
+      ]
+    },
+    "CardComment": {
+      "source": "card_comment",
+      "rest": true,
+      "permissions": [
+        {
+          "role": "anonymous",
+          "actions": [
+            {
+              "action": "read",
+              "policy": {
+                "database": "@item.ispublic eq true"
+              }
+            }
+          ]
+        },
+        {
+          "role": "authenticated",
+          "actions": ["read", "create"]
+        }
+      ]
+    },
+    "CardImage": {
+      "source": "card_image",
+      "rest": true,
+      "permissions": [
+        {
+          "role": "anonymous",
+          "actions": [
+            {
+              "action": "read",
+              "policy": {
+                "database": "@item.isprivate eq false"
+              }
+            }
+          ]
         },
         {
           "role": "authenticated",

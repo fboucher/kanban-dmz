@@ -89,7 +89,8 @@ public class BoardMapperTests
                 PublicDescription = "Public info 1",
                 CategoryId = 2,
                 AssignedTo = "Frank",
-                IsPublic = true
+                IsPublic = true,
+                ImageUrl = "http://example.com/image.png"
             },
             new()
             {
@@ -100,7 +101,8 @@ public class BoardMapperTests
                 PublicDescription = "Public info 2",
                 CategoryId = 99, // Unknown category
                 AssignedTo = "",
-                IsPublic = true
+                IsPublic = true,
+                ImageUrl = null
             }
         };
 
@@ -130,16 +132,57 @@ public class BoardMapperTests
         Assert.Equal("Public info 1", card1.PublicDescription);
         Assert.Equal("Feature", card1.CategoryName);
         Assert.Equal(2, card1.Tags.Count);
-        Assert.Contains("tag-a", card1.Tags);
-        Assert.Contains("tag-b", card1.Tags);
+        Assert.Contains("tag-a", card1.Tags.Select(t => t.Name));
+        Assert.Contains("tag-b", card1.Tags.Select(t => t.Name));
         Assert.Equal("Frank", card1.AssignedTo);
         Assert.True(card1.IsPublic);
+        Assert.Equal("http://example.com/image.png", card1.ImageUrl);
 
         var card2 = column.Cards.First(c => c.Id == cardId2);
         Assert.Equal("Second Card", card2.Title);
         Assert.Equal("Uncategorized", card2.CategoryName);
         Assert.Single(card2.Tags);
-        Assert.Contains("tag-c", card2.Tags);
+        Assert.Contains("tag-c", card2.Tags.Select(t => t.Name));
         Assert.Equal("", card2.AssignedTo);
+        Assert.Null(card2.ImageUrl);
+    }
+
+    [Fact]
+    public void MapToDetail_ShouldSetImageUrlToFeatureImage_WhenFeatureImageExists()
+    {
+        // Arrange
+        var board = new Board { Id = Guid.NewGuid(), Name = "Board" };
+        var colId = Guid.NewGuid();
+        var columns = new List<Column>
+        {
+            new() { Id = colId, BoardId = board.Id, Name = "Backlog", SortOrder = 0 }
+        };
+
+        var cardId = Guid.NewGuid();
+        var cards = new List<Card>
+        {
+            new()
+            {
+                Id = cardId,
+                BoardId = board.Id,
+                ColumnId = colId,
+                Title = "Test Card",
+                ImageUrl = "http://example.com/fallback.png"
+            }
+        };
+
+        var images = new List<CardImage>
+        {
+            new() { Id = Guid.NewGuid(), CardId = cardId, ImageUrl = "http://example.com/regular.png", IsFeatureImage = false },
+            new() { Id = Guid.NewGuid(), CardId = cardId, ImageUrl = "http://example.com/feature.png", IsFeatureImage = true }
+        };
+
+        // Act
+        var result = BoardMapper.MapToDetail(board, columns, cards, null, null, null, images);
+
+        // Assert
+        Assert.NotNull(result);
+        var mappedCard = result.Columns.First().Cards.First();
+        Assert.Equal("http://example.com/feature.png", mappedCard.ImageUrl);
     }
 }

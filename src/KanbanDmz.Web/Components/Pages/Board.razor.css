@@ -2,8 +2,7 @@
 .board-container {
     display: flex;
     flex-direction: column;
-    height: calc(100vh - 4rem);
-    padding: 1.5rem;
+    min-height: 100%;
     box-sizing: border-box;
 }
 
@@ -12,6 +11,7 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 2rem;
+    padding: 1.5rem 1.5rem 0 1.5rem;
 }
 
 .board-title-group {
@@ -25,9 +25,7 @@
     font-weight: 800;
     letter-spacing: -0.025em;
     margin: 0;
-    background: linear-gradient(135deg, var(--accent-fill-rest) 0%, #a855f7 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+    color: var(--accent-fill-rest);
 }
 
 /* Kanban Board Canvas */
@@ -37,7 +35,7 @@
     overflow-x: auto;
     flex: 1;
     align-items: flex-start;
-    padding-bottom: 1rem;
+    padding: 0 1.5rem 1rem 1.5rem;
 }
 
 /* Column Design */
@@ -176,31 +174,6 @@
     margin-bottom: 0.75rem;
 }
 
-.category-badge {
-    font-size: 0.7rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    padding: 0.15rem 0.5rem;
-    border-radius: 6px;
-    color: #ffffff;
-    letter-spacing: 0.05em;
-}
-
-.badge-bug {
-    background-color: #ef4444; /* bug red */
-}
-
-.badge-feature {
-    background-color: #3b82f6; /* feature blue */
-}
-
-.badge-chore {
-    background-color: #f59e0b; /* chore amber */
-}
-
-.badge-unknown {
-    background-color: #6b7280; /* gray fallback */
-}
 
 /* Tag Pills */
 .tags-list {
@@ -268,6 +241,7 @@
     height: 60vh;
     gap: 1.5rem;
     text-align: center;
+    padding: 1.5rem;
 }
 
 .error-text {

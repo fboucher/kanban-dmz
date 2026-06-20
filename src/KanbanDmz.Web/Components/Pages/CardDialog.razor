@@ -1,89 +1,441 @@
 @using Microsoft.FluentUI.AspNetCore.Components
 @using KanbanDmz.Domain
 @using KanbanDmz.Web.Components.Pages
+@using KanbanDmz.Web.Helpers
+@using KanbanDmz.Web.Services
+@inject KanbanService KanbanService
 
-<FluentDialogBody>
+<FluentDialogBody Class="fluent-dialog-body-override">
     <TitleTemplate>
-        <FluentStack VerticalAlignment="VerticalAlignment.Center" Gap="8px">
-            @if (Content.IsEdit)
+        <FluentStack VerticalAlignment="VerticalAlignment.Center" Gap="8px" Style="width: 100%;">
+            @if (Content.IsViewMode)
             {
-                <FluentIcon Value="@(new Icons.Regular.Size24.Edit())" Color="Color.Primary" />
-                <FluentLabel Typo="Typography.PaneHeader">Edit Card</FluentLabel>
+                <FluentIcon Value="@(new Icons.Regular.Size24.Info())" Color="Color.Primary" />
+                <FluentLabel Typo="Typography.PaneHeader">Card Details</FluentLabel>
             }
-            else
+            else if (Content.Id == Guid.Empty)
             {
                 <FluentIcon Value="@(new Icons.Regular.Size24.Add())" Color="Color.Primary" />
                 <FluentLabel Typo="Typography.PaneHeader">Create Card</FluentLabel>
             }
+            else
+            {
+                <FluentIcon Value="@(new Icons.Regular.Size24.Edit())" Color="Color.Primary" />
+                <FluentLabel Typo="Typography.PaneHeader">Edit Card</FluentLabel>
+            }
+            
+            <FluentSpacer />
+            
+            @if (Content.IsViewMode && Content.IsAuthenticated)
+            {
+                <FluentButton Appearance="ButtonAppearance.Subtle" 
+                              IconStart="@(new Icons.Regular.Size16.Edit())" 
+                              OnClick="EnterEditMode"
+                              Title="Edit Card">
+                    Edit
+                </FluentButton>
+            }
         </FluentStack>
     </TitleTemplate>
     <ChildContent>
-    <FluentStack Orientation="Orientation.Vertical" Gap="15px" Style="width: 100%;">
-        <FluentTextInput @bind-Value="Content.Title"
-                         Label="Title"
-                         Required="true"
-                         Style="width: 100%;"
-                         Placeholder="Enter card title..." />
+        @if (Content.IsViewMode)
+        {
+            <!-- VIEW MODE -->
+            <div class="card-view-container" style="@GetDialogAccentStyle()">
+                @if (!string.IsNullOrWhiteSpace(Content.ImageUrl))
+                {
+                    <div class="card-view-image-wrapper">
+                        <img src="@Content.ImageUrl" class="card-view-image" alt="Card Image" />
+                    </div>
+                }
 
-        <FluentStack Orientation="Orientation.Horizontal" Gap="15px" Style="width: 100%;">
-            <FluentSelect TOption="Category"
-                          TValue="string"
-                          Label="Category"
-                          Items="Content.Categories"
-                          OptionText="@(c => c.Name)"
-                          OptionValue="@(c => c.Id.ToString())"
-                          @bind-Value="_selectedCategoryId"
-                          Placeholder="Select Category..."
-                          Required="true"
-                          Style="width: 100%;" />
+                <FluentLabel Typo="Typography.Header" Style="font-weight: 700; margin-bottom: 4px;">@Content.Title</FluentLabel>
 
-            <FluentSelect TOption="Column"
-                          TValue="string"
-                          Label="Column"
-                          Items="Content.Columns"
-                          OptionText="@(c => c.Name)"
-                          OptionValue="@(c => c.Id.ToString())"
-                          @bind-Value="_selectedColumnId"
-                          Placeholder="Select Column..."
-                          Required="true"
-                          Style="width: 100%;" />
-        </FluentStack>
+                <div class="card-view-section">
+                    <span class="section-label">Public Description</span>
+                    @if (!string.IsNullOrWhiteSpace(Content.PublicDescription))
+                    {
+                        <div class="description-box public-desc">
+                            <div class="markdown-content">
+                                @((MarkupString)Content.PublicDescriptionHtml)
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="description-box empty-desc">No description provided.</div>
+                    }
+                </div>
 
-        <FluentStack Orientation="Orientation.Horizontal" Gap="15px" Style="width: 100%;">
-            <FluentTextInput @bind-Value="Content.AssignedTo"
-                             Label="Assignee"
-                             Placeholder="Username (e.g. Frank)"
-                             Style="width: 100%;" />
+                @if (Content.IsAuthenticated && !string.IsNullOrWhiteSpace(Content.PrivateDescription))
+                {
+                    <div class="card-view-section" style="margin-top: 8px;">
+                        <span class="section-label private-label">
+                            <FluentIcon Value="@(new Icons.Regular.Size12.LockClosed())" Color="Color.Warning" /> Private Description
+                        </span>
+                        <div class="description-box private-desc">@Content.PrivateDescription</div>
+                    </div>
+                }
 
-            <FluentTextInput @bind-Value="Content.Tags"
-                             Label="Tags"
-                             Placeholder="Comma separated (e.g. ui, db)"
-                             Style="width: 100%;" />
-        </FluentStack>
+                <div class="card-view-meta-grid" style="margin-top: 8px;">
+                    <div class="meta-item">
+                        <span class="meta-label">Category</span>
+                        <span class="meta-value">
+                            <FluentBadge Style="@GetCategoryBadgeStyle()" Appearance="BadgeAppearance.Tint">@GetCategoryName()</FluentBadge>
+                        </span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Column</span>
+                        <span class="meta-value">
+                            <FluentBadge Appearance="BadgeAppearance.Tint">@GetColumnName()</FluentBadge>
+                        </span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Assignee</span>
+                        <span class="meta-value">
+                            @if (!string.IsNullOrWhiteSpace(Content.AssignedTo))
+                            {
+                                <FluentStack Orientation="Orientation.Horizontal" Gap="6px" VerticalAlignment="VerticalAlignment.Center">
+                                    <span class="view-assignee-avatar" title="Assigned to @Content.AssignedTo">@GetInitials(Content.AssignedTo)</span>
+                                    <span>@Content.AssignedTo</span>
+                                </FluentStack>
+                            }
+                            else
+                            {
+                                <span class="unassigned-text">Unassigned</span>
+                            }
+                        </span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Visibility</span>
+                        <span class="meta-value">
+                            @if (Content.IsPublic)
+                            {
+                                <FluentBadge Color="BadgeColor.Success" Appearance="BadgeAppearance.Tint">
+                                    <FluentIcon Value="@(new Icons.Regular.Size12.Eye())" Slot="icon-start" /> Public
+                                </FluentBadge>
+                            }
+                            else
+                            {
+                                <FluentBadge Color="BadgeColor.Warning" Appearance="BadgeAppearance.Tint">
+                                    <FluentIcon Value="@(new Icons.Regular.Size12.LockClosed())" Slot="icon-start" /> Private
+                                </FluentBadge>
+                            }
+                        </span>
+                    </div>
+                </div>
 
-        <FluentCheckbox @bind-Value="Content.IsPublic"
-                        Label="Visible to Public" />
+                @if (!string.IsNullOrWhiteSpace(Content.Tags))
+                {
+                    <div class="card-view-section" style="margin-top: 8px;">
+                        <span class="section-label">Tags</span>
+                        <div class="tags-container">
+                            @foreach (var tag in ParseTags(Content.Tags))
+                            {
+                                <span class="view-tag-pill">#@tag</span>
+                            }
+                        </div>
+                    </div>
+                }
 
-        <FluentTextArea @bind-Value="Content.PublicDescription"
-                        Label="Public Description"
-                        Rows="3"
-                        Style="width: 100%;"
-                        Placeholder="Description visible to anyone..." />
+                @if (_cardImages.Any())
+                {
+                    <div class="card-view-section" style="margin-top: 12px;">
+                        <span class="section-label">
+                            <FluentIcon Value="@(new Icons.Regular.Size16.Image())" Color="Color.Primary" /> Image Gallery
+                        </span>
+                        <div class="image-gallery-grid">
+                            @foreach (var img in _cardImages)
+                            {
+                                <div class="gallery-item">
+                                    <a href="@img.ImageUrl" target="_blank" style="width: 100%; height: 100%; display: block;">
+                                        <img src="@img.ImageUrl" style="width: 100%; height: 100%; object-fit: cover;" class="hover-zoom" />
+                                    </a>
+                                    <div class="gallery-item-badges">
+                                        @if (img.IsFeatureImage)
+                                        {
+                                            <span class="badge-cover">
+                                                ★ Cover
+                                            </span>
+                                        }
+                                        @if (img.IsPrivate)
+                                        {
+                                            <span class="badge-private">
+                                                🔒 Private
+                                            </span>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <!-- EDIT / CREATE MODE -->
+            <FluentStack Orientation="Orientation.Vertical" Gap="15px" Style="width: 100%;">
+                <FluentTextInput @bind-Value="Content.Title"
+                                 Label="Title"
+                                 Required="true"
+                                 Style="width: 100%;"
+                                 Placeholder="Enter card title..." />
 
-        <FluentTextArea @bind-Value="Content.PrivateDescription"
-                        Label="Private Description"
-                        Rows="3"
-                        Style="width: 100%;"
-                        Placeholder="Description visible only to authenticated users..." />
-    </FluentStack>
+                <FluentStack Orientation="Orientation.Horizontal" Gap="15px" Style="width: 100%;">
+                    <FluentSelect TOption="Category"
+                                  TValue="string"
+                                  Label="Category"
+                                  Items="Content.Categories"
+                                  OptionText="@(c => c.Name)"
+                                  OptionValue="@(c => c.Id.ToString())"
+                                  @bind-Value="_selectedCategoryId"
+                                  Placeholder="Select Category..."
+                                  Required="true"
+                                  Style="width: 100%;" />
+
+                    <FluentSelect TOption="Column"
+                                  TValue="string"
+                                  Label="Column"
+                                  Items="Content.Columns"
+                                  OptionText="@(c => c.Name)"
+                                  OptionValue="@(c => c.Id.ToString())"
+                                  @bind-Value="_selectedColumnId"
+                                  Placeholder="Select Column..."
+                                  Required="true"
+                                  Style="width: 100%;" />
+                </FluentStack>
+
+                <div class="markdown-container" style="width: 100%;">
+                    <FluentLabel Style="font-weight: 600; margin-bottom: 4px; display: block;">Public Description</FluentLabel>
+                    <FluentTabs @bind-ActiveTabId="@_activeDescriptionTabId" Style="width: 100%;">
+                        <FluentTab Id="write-tab" Header="Write">
+                            <div style="padding-top: 10px;">
+                                <FluentTextArea @bind-Value="Content.PublicDescription"
+                                                Rows="16"
+                                                Cols="110"
+                                                Style="width: 100%;"
+                                                Placeholder="Description visible to anyone (Markdown supported)..."
+                                                aria-label="Public Description" />
+                            </div>
+                        </FluentTab>
+                        <FluentTab Id="preview-tab" Header="Preview">
+                            <div style="padding-top: 10px;">
+                                <div class="markdown-preview-box">
+                                    @if (!string.IsNullOrWhiteSpace(Content.PublicDescription))
+                                    {
+                                        <div class="markdown-content">
+                                            @((MarkupString)Content.PublicDescriptionHtml)
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div style="color: var(--neutral-foreground-hint); font-style: italic;">Nothing to preview.</div>
+                                    }
+                                </div>
+                            </div>
+                        </FluentTab>
+                    </FluentTabs>
+                </div>
+
+                <FluentTextArea @bind-Value="Content.PrivateDescription"
+                                 Label="Private Description"
+                                 Rows="12"
+                                 Cols="110"
+                                 Style="width: 100%;"
+                                 Placeholder="Description visible only to authenticated users..." />
+
+                @using System.IO
+
+                <div class="edit-bottom-grid">
+                    <!-- Column 1: Assignee and Tags -->
+                    <div class="edit-bottom-column">
+                        <FluentTextInput @bind-Value="Content.AssignedTo"
+                                         Label="Assignee"
+                                         Placeholder="Username (e.g. Frank)"
+                                         Style="width: 100%;" />
+
+                        <FluentTextInput @bind-Value="Content.Tags"
+                                         Label="Tags"
+                                         Placeholder="Comma separated (e.g. ui, db)"
+                                         Style="width: 100%;" />
+                    </div>
+
+                    <!-- Column 2: Visibility & Custom Card Color -->
+                    <div class="edit-bottom-column">
+                        <FluentLabel Typo="Typography.Body" Style="font-weight: 600; margin-bottom: 8px;">Settings</FluentLabel>
+                        <FluentCheckbox @bind-Value="Content.IsPublic"
+                                        Label="Visible to Public" />
+                        <FluentCheckbox @bind-Value="HasCustomColor"
+                                        Label="Custom Card Color" Style="margin-top: 8px;" />
+                        @if (_hasCustomColor)
+                        {
+                            <div style="display: flex; align-items: center; gap: 10px; margin-top: 4px;">
+                                <input type="color" @bind="_cardColor"
+                                       style="width: 36px; height: 30px; border: 1px solid var(--neutral-stroke-rest); border-radius: 4px; padding: 2px; cursor: pointer; background: none;" />
+                                <span style="font-size: 0.8rem; color: var(--neutral-foreground-hint); font-family: monospace;">@_cardColor</span>
+                            </div>
+                        }
+                    </div>
+
+                    <!-- Column 3: Card Image Gallery & Upload -->
+                    <div class="edit-bottom-column edit-images-section">
+                        <FluentLabel Typo="Typography.Body" Style="font-weight: 600; margin-bottom: 8px;">Card Image Gallery</FluentLabel>
+                        
+                        @if (_loadingImages)
+                        {
+                            <FluentSpinner Style="margin: 10px auto;" />
+                        }
+                        else if (_cardImages.Any())
+                        {
+                            <div class="edit-gallery-grid">
+                                @foreach (var img in _cardImages)
+                                {
+                                    <div class="edit-gallery-item">
+                                        <div class="edit-gallery-image-wrapper">
+                                            <img src="@img.ImageUrl" style="width: 100%; height: 100%; object-fit: cover;" />
+                                            @if (img.IsFeatureImage)
+                                            {
+                                                <span class="edit-badge-cover">
+                                                    ★ Cover
+                                                </span>
+                                            }
+                                            @if (img.IsPrivate)
+                                            {
+                                                <span class="edit-badge-private">
+                                                    🔒 Private
+                                                </span>
+                                            }
+                                        </div>
+                                        <div class="edit-gallery-controls">
+                                            <FluentStack Orientation="Orientation.Horizontal" Gap="6px" HorizontalAlignment="HorizontalAlignment.Center" Style="width: 100%;">
+                                                <FluentButton Appearance="img.IsFeatureImage ? ButtonAppearance.Primary : ButtonAppearance.Outline"
+                                                              OnClick="@(() => ToggleFeatureImageAsync(img))"
+                                                              Title="@(img.IsFeatureImage ? "Remove Cover" : "Set as Cover")"
+                                                              IconStart="@(img.IsFeatureImage ? new Icons.Filled.Size16.Star() : new Icons.Regular.Size16.Star())" />
+                                                
+                                                <FluentButton Appearance="img.IsPrivate ? ButtonAppearance.Primary : ButtonAppearance.Outline"
+                                                              OnClick="@(() => ToggleImagePrivacyAsync(img))"
+                                                              Title="@(img.IsPrivate ? "Make Public" : "Make Private")"
+                                                              IconStart="@(img.IsPrivate ? new Icons.Filled.Size16.LockClosed() : new Icons.Regular.Size16.LockOpen())" />
+
+                                                <FluentButton Appearance="ButtonAppearance.Outline"
+                                                              OnClick="@(() => DeleteImageAsync(img))"
+                                                              Title="Delete Image"
+                                                              IconStart="@(new Icons.Regular.Size16.Delete())" />
+                                            </FluentStack>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div style="color: var(--neutral-foreground-hint); font-style: italic; margin-bottom: 15px;">No images uploaded yet.</div>
+                        }
+
+                        <div class="upload-container">
+                            <FluentLabel Typo="Typography.Body" Style="font-weight: 500; font-size: 0.85rem;">Upload Image</FluentLabel>
+                            <FluentInputFile Id="card-image-upload"
+                                             Mode="InputFileMode.Stream"
+                                             Multiple="false"
+                                             Accept="image/*"
+                                             OnFileUploaded="@OnFileUploadedAsync"
+                                             Style="width: 100%;">
+                                <ChildContent>
+                                    <FluentLabel Typo="Typography.Body" Style="font-size: 0.8rem;">Drag image or browse</FluentLabel>
+                                </ChildContent>
+                            </FluentInputFile>
+                        </div>
+                    </div>
+                </div>
+            </FluentStack>
+        }
+
+        @if (Content.IsViewMode && Content.Id != Guid.Empty)
+        {
+            <div class="comments-section" style="margin-top: 24px; border-top: 1px solid var(--neutral-stroke-divider-rest); padding-top: 20px; width: 100%;">
+                <span class="section-label" style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                    <FluentIcon Value="@(new Icons.Regular.Size16.Comment())" Color="Color.Primary" /> Comments (@_comments.Count)
+                </span>
+
+                @if (_loadingComments && _comments.Count == 0)
+                {
+                    <FluentSpinner Style="margin: 20px auto;" />
+                }
+                else if (_comments.Count == 0)
+                {
+                    <div style="color: var(--neutral-foreground-hint); font-style: italic; margin-bottom: 15px; padding: 12px; background-color: var(--neutral-fill-input-rest); border-radius: 6px;">
+                        No comments yet. Be the first to start the discussion!
+                    </div>
+                }
+                else
+                {
+                    <div class="comments-list" style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 15px; max-height: 300px; overflow-y: auto; padding-right: 4px;">
+                        @foreach (var comment in _comments)
+                        {
+                            <div class="comment-bubble" style="background-color: var(--neutral-fill-input-rest); border: 1px solid var(--neutral-stroke-rest); border-radius: 8px; overflow: hidden; display: flex; flex-direction: column;">
+                                <div class="comment-header" style="background-color: var(--neutral-fill-secondary-rest); padding: 8px 12px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--neutral-stroke-divider-rest); font-size: 0.8rem; color: var(--neutral-foreground-hint);">
+                                    <div style="display: flex; align-items: center; gap: 8px;">
+                                        <span style="font-weight: 600; color: var(--neutral-foreground-rest);">@comment.CreatedBy</span>
+                                        <span>commented</span>
+                                    </div>
+                                    <span>@comment.CreatedAt.ToLocalTime().ToString("g")</span>
+                                </div>
+                                <div class="comment-body" style="padding: 12px; font-size: 0.9rem; line-height: 1.5; white-space: pre-wrap; color: var(--neutral-foreground-rest);">@comment.Content</div>
+                            </div>
+                        }
+                    </div>
+                }
+
+                @if (Content.IsAuthenticated)
+                {
+                    <div class="add-comment-container" style="display: flex; flex-direction: column; gap: 8px; margin-top: 15px;">
+                        @if (_commentError is not null)
+                        {
+                            <div style="color: var(--error, #ef4444); font-size: 0.85rem; padding: 8px 12px; background-color: rgba(239, 68, 68, 0.1); border-radius: 6px;">
+                                @_commentError
+                            </div>
+                        }
+                        <FluentTextArea @bind-Value="_newCommentContent"
+                                        Rows="3"
+                                        Style="width: 100%;"
+                                        Placeholder="Write a comment..."
+                                        aria-label="Add Comment content" />
+                        <div style="display: flex; justify-content: flex-end;">
+                            <FluentButton Appearance="ButtonAppearance.Primary"
+                                          IconStart="@(new Icons.Regular.Size16.Send())"
+                                          OnClick="AddCommentAsync"
+                                          Disabled="@(string.IsNullOrWhiteSpace(_newCommentContent) || _submittingComment)">
+                                Add Comment
+                            </FluentButton>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
     </ChildContent>
     <ActionTemplate>
-        @if (Content.IsEdit)
+        @if (Content.IsViewMode)
         {
-            <FluentButton Appearance="ButtonAppearance.Outline" BackgroundColor="#ef4444" Color="#ffffff" OnClick="DeleteAsync">Delete Card</FluentButton>
+            <!-- VIEW MODE BUTTONS -->
+            <FluentButton Appearance="ButtonAppearance.Primary" OnClick="CancelAsync">Close</FluentButton>
         }
-        <FluentButton Appearance="ButtonAppearance.Default" OnClick="CancelAsync">Cancel</FluentButton>
-        <FluentButton Appearance="ButtonAppearance.Primary" OnClick="SaveAsync" Disabled="@(!IsValid)">Save</FluentButton>
+        else
+        {
+            <!-- EDIT / CREATE MODE BUTTONS -->
+            @if (Content.Id != Guid.Empty)
+            {
+                <FluentButton Appearance="ButtonAppearance.Outline" BackgroundColor="#ef4444" Color="#ffffff" OnClick="DeleteAsync">Delete Card</FluentButton>
+                <FluentSpacer />
+                <FluentButton Appearance="ButtonAppearance.Default" OnClick="CancelEdit">Cancel</FluentButton>
+            }
+            else
+            {
+                <FluentButton Appearance="ButtonAppearance.Default" OnClick="CancelAsync">Cancel</FluentButton>
+            }
+            <FluentButton Appearance="ButtonAppearance.Primary" OnClick="SaveAsync" Disabled="@(!IsValid)">Save</FluentButton>
+        }
     </ActionTemplate>
 </FluentDialogBody>
 
@@ -93,6 +445,18 @@
 
     [CascadingParameter]
     public IDialogInstance DialogInstance { get; set; } = default!;
+
+    private List<CardComment> _comments = [];
+    private bool _loadingComments = false;
+    private string _newCommentContent = string.Empty;
+    private bool _submittingComment = false;
+    private string? _commentError;
+
+    private string? _activeDescriptionTabId = "write-tab";
+
+    private List<CardImage> _cardImages = [];
+    private bool _loadingImages = false;
+    private List<CardImage> _backupImages = [];
 
     private string _selectedCategoryId
     {
@@ -111,6 +475,191 @@
         && Content.CategoryId != 0
         && Content.ColumnId != Guid.Empty;
 
+    // Custom Color picker bindings
+    private bool _hasCustomColor;
+    private string _cardColorValue = "#ffffff";
+    private string _cardColor
+    {
+        get => _cardColorValue;
+        set
+        {
+            _cardColorValue = value;
+            Content.Color = value;
+        }
+    }
+
+    private bool HasCustomColor
+    {
+        get => _hasCustomColor;
+        set
+        {
+            _hasCustomColor = value;
+            Content.Color = value ? _cardColorValue : null;
+        }
+    }
+
+    // Backup states for reverting edit
+    private string _backupTitle = string.Empty;
+    private string _backupPublicDescription = string.Empty;
+    private string _backupPrivateDescription = string.Empty;
+    private int _backupCategoryId;
+    private Guid _backupColumnId;
+    private string _backupAssignedTo = string.Empty;
+    private bool _backupIsPublic;
+    private string? _backupImageUrl;
+    private string _backupTags = string.Empty;
+    private string? _backupColor;
+
+    private async Task LoadImagesAsync()
+    {
+        if (Content.Id == Guid.Empty)
+        {
+            _cardImages = Content.Images.ToList(); // shallow copy
+            Content.ImageUrl = _cardImages.FirstOrDefault(i => i.IsFeatureImage)?.ImageUrl;
+            return;
+        }
+        _loadingImages = true;
+        try
+        {
+            _cardImages = await KanbanService.GetCardImagesAsync(Content.Id);
+            Content.Images = _cardImages; // keep in sync
+            Content.ImageUrl = _cardImages.FirstOrDefault(i => i.IsFeatureImage)?.ImageUrl;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Error loading card images: " + ex.Message);
+        }
+        finally
+        {
+            _loadingImages = false;
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!string.IsNullOrWhiteSpace(Content.Color))
+        {
+            _cardColorValue = Content.Color;
+            _hasCustomColor = true;
+        }
+        CreateBackup();
+
+        if (Content.Id != Guid.Empty)
+        {
+            await LoadCommentsAsync();
+        }
+        await LoadImagesAsync();
+    }
+
+    private async Task LoadCommentsAsync()
+    {
+        _loadingComments = true;
+        _commentError = null;
+        try
+        {
+            _comments = await KanbanService.GetCommentsAsync(Content.Id);
+        }
+        catch (Exception ex)
+        {
+            _commentError = "Failed to load comments.";
+            Console.WriteLine("Error loading comments: " + ex.Message);
+        }
+        finally
+        {
+            _loadingComments = false;
+        }
+    }
+
+    private async Task AddCommentAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_newCommentContent) || _submittingComment) return;
+
+        _submittingComment = true;
+        _commentError = null;
+        try
+        {
+            var createdComment = await KanbanService.CreateCommentAsync(Content.Id, _newCommentContent.Trim());
+            if (createdComment != null)
+            {
+                _newCommentContent = string.Empty;
+                _commentError = null;
+                await LoadCommentsAsync();
+            }
+            else
+            {
+                _commentError = "Failed to add comment. The server returned an error.";
+            }
+        }
+        catch (Exception ex)
+        {
+            _commentError = "An unexpected error occurred while adding the comment.";
+            Console.WriteLine("Error adding comment: " + ex.Message);
+        }
+        finally
+        {
+            _submittingComment = false;
+        }
+    }
+
+    private void CreateBackup()
+    {
+        _backupTitle = Content.Title;
+        _backupPublicDescription = Content.PublicDescription;
+        _backupPrivateDescription = Content.PrivateDescription;
+        _backupCategoryId = Content.CategoryId;
+        _backupColumnId = Content.ColumnId;
+        _backupAssignedTo = Content.AssignedTo;
+        _backupIsPublic = Content.IsPublic;
+        _backupImageUrl = Content.ImageUrl;
+        _backupTags = Content.Tags;
+        _backupColor = Content.Color;
+        if (Content.Id == Guid.Empty)
+        {
+            _backupImages = new List<CardImage>(Content.Images);
+        }
+    }
+
+    private void RestoreBackup()
+    {
+        Content.Title = _backupTitle;
+        Content.PublicDescription = _backupPublicDescription;
+        Content.PrivateDescription = _backupPrivateDescription;
+        Content.CategoryId = _backupCategoryId;
+        Content.ColumnId = _backupColumnId;
+        Content.AssignedTo = _backupAssignedTo;
+        Content.IsPublic = _backupIsPublic;
+        Content.ImageUrl = _backupImageUrl;
+        Content.Tags = _backupTags;
+        Content.Color = _backupColor;
+        if (Content.Id == Guid.Empty)
+        {
+            Content.Images = new List<CardImage>(_backupImages);
+            _cardImages = Content.Images;
+        }
+
+        if (!string.IsNullOrWhiteSpace(Content.Color))
+        {
+            _cardColorValue = Content.Color;
+            _hasCustomColor = true;
+        }
+        else
+        {
+            _hasCustomColor = false;
+        }
+    }
+
+    private void EnterEditMode()
+    {
+        CreateBackup();
+        Content.IsViewMode = false;
+    }
+
+    private void CancelEdit()
+    {
+        RestoreBackup();
+        Content.IsViewMode = true;
+    }
+
     private async Task SaveAsync()
     {
         if (IsValid)
@@ -128,5 +677,192 @@
     {
         Content.IsDelete = true;
         await DialogInstance.CloseAsync(Content);
+    }
+
+    private async Task ToggleFeatureImageAsync(CardImage img)
+    {
+        if (Content.Id == Guid.Empty)
+        {
+            foreach (var image in _cardImages)
+            {
+                image.IsFeatureImage = (image == img);
+            }
+            Content.Images = _cardImages.ToList();
+            Content.ImageUrl = _cardImages.FirstOrDefault(i => i.IsFeatureImage)?.ImageUrl;
+        }
+        else
+        {
+            var success = await KanbanService.SetFeatureImageAsync(Content.Id, img.Id, !img.IsFeatureImage);
+            if (success)
+            {
+                await LoadImagesAsync();
+            }
+        }
+    }
+
+    private async Task ToggleImagePrivacyAsync(CardImage img)
+    {
+        if (Content.Id == Guid.Empty)
+        {
+            img.IsPrivate = !img.IsPrivate;
+            Content.Images = _cardImages.ToList();
+        }
+        else
+        {
+            var success = await KanbanService.ToggleImagePrivacyAsync(img.Id, !img.IsPrivate);
+            if (success)
+            {
+                await LoadImagesAsync();
+            }
+        }
+    }
+
+    private async Task DeleteImageAsync(CardImage img)
+    {
+        if (Content.Id == Guid.Empty)
+        {
+            _cardImages.Remove(img);
+            if (img.IsFeatureImage && _cardImages.Any())
+            {
+                _cardImages.First().IsFeatureImage = true;
+            }
+            Content.Images = _cardImages.ToList();
+            Content.ImageUrl = _cardImages.FirstOrDefault(i => i.IsFeatureImage)?.ImageUrl;
+        }
+        else
+        {
+            var success = await KanbanService.DeleteCardImageAsync(img.Id);
+            if (success)
+            {
+                if (img.IsFeatureImage)
+                {
+                    var remaining = await KanbanService.GetCardImagesAsync(Content.Id);
+                    if (remaining.Any())
+                    {
+                        var firstRemaining = remaining.First();
+                        await KanbanService.SetFeatureImageAsync(Content.Id, firstRemaining.Id, true);
+                    }
+                }
+                await LoadImagesAsync();
+            }
+        }
+    }
+
+    private async Task OnFileUploadedAsync(FluentInputFileEventArgs e)
+    {
+        if (e.Stream is not null)
+        {
+            try
+            {
+                using var ms = new MemoryStream();
+                await e.Stream.CopyToAsync(ms);
+                var bytes = ms.ToArray();
+                var base64 = Convert.ToBase64String(bytes);
+                var imageUrl = $"data:{e.ContentType};base64,{base64}";
+
+                if (Content.Id == Guid.Empty)
+                {
+                    var isFeature = !_cardImages.Any(img => img.IsFeatureImage);
+                    var newImg = new CardImage
+                    {
+                        ImageUrl = imageUrl,
+                        IsPrivate = false,
+                        IsFeatureImage = isFeature
+                    };
+                    _cardImages.Add(newImg);
+                    Content.Images = _cardImages.ToList();
+                    Content.ImageUrl = _cardImages.FirstOrDefault(i => i.IsFeatureImage)?.ImageUrl;
+                }
+                else
+                {
+                    var isFeature = !_cardImages.Any(img => img.IsFeatureImage);
+                    var newImg = await KanbanService.AddCardImageAsync(Content.Id, imageUrl, false, isFeature);
+                    if (newImg != null)
+                    {
+                        await LoadImagesAsync();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error reading uploaded file: " + ex.Message);
+            }
+        }
+    }
+
+    // Helper methods for View Mode
+    private string GetCategoryName() =>
+        Content.Categories.FirstOrDefault(c => c.Id == Content.CategoryId)?.Name ?? "Uncategorized";
+
+    private string GetColumnName() =>
+        Content.Columns.FirstOrDefault(c => c.Id == Content.ColumnId)?.Name ?? "Unknown Column";
+
+    private string GetCategoryColor() =>
+        Content.Categories.FirstOrDefault(c => c.Id == Content.CategoryId)?.Color ?? "";
+
+    private string GetCategoryBadgeStyle()
+    {
+        var color = GetCategoryColor();
+        return string.IsNullOrWhiteSpace(color) ? "" : $"--badge-fill-color: {color}; color: {GetContrastColor(color)};";
+    }
+
+    private static List<string> ParseTags(string tags) =>
+        tags.Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Select(t => t.Trim())
+            .Where(t => !string.IsNullOrEmpty(t))
+            .ToList();
+
+    private string GetInitials(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return "?";
+        var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 1) return parts[0][0].ToString().ToUpperInvariant();
+        return (parts[0][0].ToString() + parts[^1][0].ToString()).ToUpperInvariant();
+    }
+
+    private string GetDialogAccentStyle()
+    {
+        string? hexColor = null;
+        if (!string.IsNullOrWhiteSpace(Content.Color))
+        {
+            hexColor = Content.Color;
+        }
+        else
+        {
+            var category = Content.Categories.FirstOrDefault(c => c.Id == Content.CategoryId);
+            if (!string.IsNullOrWhiteSpace(category?.Color))
+            {
+                hexColor = category.Color;
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(hexColor))
+        {
+            return $"--card-accent-color: {hexColor};";
+        }
+        return "";
+    }
+
+    private string GetContrastColor(string hex)
+    {
+        if (string.IsNullOrWhiteSpace(hex)) return "var(--neutral-foreground-rest)";
+        try
+        {
+            hex = hex.TrimStart('#');
+            if (hex.Length == 3)
+            {
+                hex = new string(new[] { hex[0], hex[0], hex[1], hex[1], hex[2], hex[2] });
+            }
+            if (hex.Length != 6) return "var(--neutral-foreground-rest)";
+            int r = Convert.ToInt32(hex.Substring(0, 2), 16);
+            int g = Convert.ToInt32(hex.Substring(2, 2), 16);
+            int b = Convert.ToInt32(hex.Substring(4, 2), 16);
+            double yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000.0;
+            return (yiq >= 128) ? "#1a1a1a" : "#ffffff";
+        }
+        catch
+        {
+            return "var(--neutral-foreground-rest)";
+        }
     }
 }
