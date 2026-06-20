@@ -57,6 +57,33 @@ CREATE TABLE IF NOT EXISTS card_comment (
     IsPublic BOOLEAN NOT NULL DEFAULT true
 );
 
+CREATE TABLE IF NOT EXISTS card_image (
+    Id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    CardId UUID NOT NULL REFERENCES card(Id) ON DELETE CASCADE,
+    ImageUrl TEXT NOT NULL,
+    IsFeatureImage BOOLEAN NOT NULL DEFAULT false,
+    IsPrivate BOOLEAN NOT NULL DEFAULT false
+);
+
+-- Trigger to ensure only one feature image per card exists
+CREATE OR REPLACE FUNCTION handle_single_feature_image()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.IsFeatureImage = true THEN
+        UPDATE card_image
+        SET IsFeatureImage = false
+        WHERE CardId = NEW.CardId AND Id <> NEW.Id AND IsFeatureImage = true;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE TRIGGER trg_single_feature_image
+BEFORE INSERT OR UPDATE OF IsFeatureImage ON card_image
+FOR EACH ROW
+EXECUTE FUNCTION handle_single_feature_image();
+
+
 -- Trigger to sync IsPublic on comment insert
 CREATE OR REPLACE FUNCTION sync_comment_ispublic_on_insert()
 RETURNS TRIGGER AS $$

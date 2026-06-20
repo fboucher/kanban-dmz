@@ -137,6 +137,39 @@
                         </div>
                     </div>
                 }
+
+                @if (_cardImages.Any())
+                {
+                    <div class="card-view-section" style="margin-top: 12px;">
+                        <span class="section-label">
+                            <FluentIcon Value="@(new Icons.Regular.Size16.Image())" Color="Color.Primary" /> Image Gallery
+                        </span>
+                        <div class="image-gallery-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; margin-top: 8px;">
+                            @foreach (var img in _cardImages)
+                            {
+                                <div class="gallery-item" style="position: relative; border-radius: 6px; overflow: hidden; border: 1px solid var(--neutral-stroke-rest); aspect-ratio: 1.5; background-color: var(--neutral-fill-secondary-rest); display: flex; justify-content: center; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                                    <a href="@img.ImageUrl" target="_blank" style="width: 100%; height: 100%; display: block;">
+                                        <img src="@img.ImageUrl" style="width: 100%; height: 100%; object-fit: cover;" class="hover-zoom" />
+                                    </a>
+                                    <div class="gallery-item-badges" style="position: absolute; bottom: 4px; left: 4px; right: 4px; display: flex; gap: 4px; flex-wrap: wrap; pointer-events: none;">
+                                        @if (img.IsFeatureImage)
+                                        {
+                                            <span style="background: rgba(0, 120, 212, 0.85); color: white; padding: 2px 4px; border-radius: 3px; font-size: 0.65rem; font-weight: bold; display: flex; align-items: center; gap: 2px;">
+                                                ★ Cover
+                                            </span>
+                                        }
+                                        @if (img.IsPrivate)
+                                        {
+                                            <span style="background: rgba(216, 57, 28, 0.85); color: white; padding: 2px 4px; border-radius: 3px; font-size: 0.65rem; font-weight: bold; display: flex; align-items: center; gap: 2px;">
+                                                🔒 Private
+                                            </span>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
             </div>
         }
         else
@@ -245,15 +278,68 @@
                         }
                     </div>
 
-                    <!-- Column 3: Card Image Upload -->
-                    <div class="edit-bottom-column">
-                        <div style="border: 1px dashed var(--neutral-stroke-rest); padding: 10px; border-radius: 4px; width: 100%; box-sizing: border-box; display: flex; flex-direction: column; gap: 8px;">
-                            <FluentLabel Typo="Typography.Body" Style="font-weight: 600; margin-bottom: 2px;">Card Image</FluentLabel>
-                            <FluentTextInput @bind-Value="Content.ImageUrl"
-                                             Label="Image URL"
-                                             Placeholder="Enter image URL..."
-                                             Style="width: 100%;" />
-                            
+                    <!-- Column 3: Card Image Gallery & Upload -->
+                    <div class="edit-bottom-column" style="grid-column: span 2; border-top: 1px solid var(--neutral-stroke-divider-rest); padding-top: 15px; margin-top: 10px;">
+                        <FluentLabel Typo="Typography.Body" Style="font-weight: 600; margin-bottom: 8px;">Card Image Gallery</FluentLabel>
+                        
+                        @if (_loadingImages)
+                        {
+                            <FluentSpinner Style="margin: 10px auto;" />
+                        }
+                        else if (_cardImages.Any())
+                        {
+                            <div class="edit-gallery-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; margin-bottom: 15px;">
+                                @foreach (var img in _cardImages)
+                                {
+                                    <div class="edit-gallery-item" style="border: 1px solid var(--neutral-stroke-rest); border-radius: 6px; overflow: hidden; background: var(--neutral-fill-input-rest); display: flex; flex-direction: column; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                                        <div style="width: 100%; aspect-ratio: 1.5; overflow: hidden; background: var(--neutral-fill-secondary-rest); display: flex; justify-content: center; align-items: center; position: relative;">
+                                            <img src="@img.ImageUrl" style="width: 100%; height: 100%; object-fit: cover;" />
+                                            @if (img.IsFeatureImage)
+                                            {
+                                                <span style="position: absolute; top: 4px; right: 4px; background: #0078d4; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; display: flex; align-items: center; gap: 2px;">
+                                                    ★ Cover
+                                                </span>
+                                            }
+                                            @if (img.IsPrivate)
+                                            {
+                                                <span style="position: absolute; top: 4px; left: 4px; background: #d8391c; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; display: flex; align-items: center; gap: 2px;">
+                                                    🔒 Private
+                                                </span>
+                                            }
+                                        </div>
+                                        <div style="padding: 8px; display: flex; flex-direction: column; gap: 6px; background: var(--neutral-fill-input-rest);">
+                                            <FluentStack Orientation="Orientation.Horizontal" Gap="4px" Style="width: 100%; justify-content: space-between;">
+                                                <FluentButton Appearance="img.IsFeatureImage ? ButtonAppearance.Primary : ButtonAppearance.Outline"
+                                                              OnClick="@(() => ToggleFeatureImageAsync(img))"
+                                                              Title="@(img.IsFeatureImage ? "Remove Cover" : "Set as Cover")"
+                                                              IconStart="@(new Icons.Regular.Size16.Star())">
+                                                    Cover
+                                                </FluentButton>
+                                                
+                                                <FluentButton Appearance="img.IsPrivate ? ButtonAppearance.Primary : ButtonAppearance.Outline"
+                                                              OnClick="@(() => ToggleImagePrivacyAsync(img))"
+                                                              Title="@(img.IsPrivate ? "Make Public" : "Make Private")"
+                                                              IconStart="@(img.IsPrivate ? new Icons.Regular.Size16.LockClosed() : new Icons.Regular.Size16.LockOpen())">
+                                                    @(img.IsPrivate ? "Private" : "Public")
+                                                </FluentButton>
+
+                                                <FluentButton Appearance="ButtonAppearance.Outline"
+                                                              OnClick="@(() => DeleteImageAsync(img))"
+                                                              Title="Delete Image"
+                                                              IconStart="@(new Icons.Regular.Size16.Delete())" />
+                                            </FluentStack>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div style="color: var(--neutral-foreground-hint); font-style: italic; margin-bottom: 15px;">No images uploaded yet.</div>
+                        }
+
+                        <div style="border: 1px dashed var(--neutral-stroke-rest); padding: 12px; border-radius: 6px; display: flex; flex-direction: column; gap: 8px; background: var(--neutral-fill-input-rest);">
+                            <FluentLabel Typo="Typography.Body" Style="font-weight: 500; font-size: 0.85rem;">Upload Image</FluentLabel>
                             <FluentInputFile Id="card-image-upload"
                                              Mode="InputFileMode.Stream"
                                              Multiple="false"
@@ -372,6 +458,10 @@
 
     private string? _activeDescriptionTabId = "write-tab";
 
+    private List<CardImage> _cardImages = [];
+    private bool _loadingImages = false;
+    private List<CardImage> _backupImages = [];
+
     private string _selectedCategoryId
     {
         get => Content.CategoryId == 0 ? "" : Content.CategoryId.ToString();
@@ -424,6 +514,31 @@
     private string _backupTags = string.Empty;
     private string? _backupColor;
 
+    private async Task LoadImagesAsync()
+    {
+        if (Content.Id == Guid.Empty)
+        {
+            _cardImages = Content.Images;
+            Content.ImageUrl = _cardImages.FirstOrDefault(i => i.IsFeatureImage)?.ImageUrl;
+            return;
+        }
+        _loadingImages = true;
+        try
+        {
+            _cardImages = await KanbanService.GetCardImagesAsync(Content.Id);
+            Content.Images = _cardImages; // keep in sync
+            Content.ImageUrl = _cardImages.FirstOrDefault(i => i.IsFeatureImage)?.ImageUrl;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Error loading card images: " + ex.Message);
+        }
+        finally
+        {
+            _loadingImages = false;
+        }
+    }
+
     protected override async Task OnInitializedAsync()
     {
         if (!string.IsNullOrWhiteSpace(Content.Color))
@@ -437,6 +552,7 @@
         {
             await LoadCommentsAsync();
         }
+        await LoadImagesAsync();
     }
 
     private async Task LoadCommentsAsync()
@@ -501,6 +617,10 @@
         _backupImageUrl = Content.ImageUrl;
         _backupTags = Content.Tags;
         _backupColor = Content.Color;
+        if (Content.Id == Guid.Empty)
+        {
+            _backupImages = new List<CardImage>(Content.Images);
+        }
     }
 
     private void RestoreBackup()
@@ -515,6 +635,11 @@
         Content.ImageUrl = _backupImageUrl;
         Content.Tags = _backupTags;
         Content.Color = _backupColor;
+        if (Content.Id == Guid.Empty)
+        {
+            Content.Images = new List<CardImage>(_backupImages);
+            _cardImages = Content.Images;
+        }
 
         if (!string.IsNullOrWhiteSpace(Content.Color))
         {
@@ -558,6 +683,66 @@
         await DialogInstance.CloseAsync(Content);
     }
 
+    private async Task ToggleFeatureImageAsync(CardImage img)
+    {
+        if (Content.Id == Guid.Empty)
+        {
+            foreach (var image in Content.Images)
+            {
+                image.IsFeatureImage = (image == img);
+            }
+            _cardImages = Content.Images;
+            Content.ImageUrl = _cardImages.FirstOrDefault(i => i.IsFeatureImage)?.ImageUrl;
+        }
+        else
+        {
+            var success = await KanbanService.SetFeatureImageAsync(Content.Id, img.Id, !img.IsFeatureImage);
+            if (success)
+            {
+                await LoadImagesAsync();
+            }
+        }
+    }
+
+    private async Task ToggleImagePrivacyAsync(CardImage img)
+    {
+        if (Content.Id == Guid.Empty)
+        {
+            img.IsPrivate = !img.IsPrivate;
+            _cardImages = Content.Images;
+        }
+        else
+        {
+            var success = await KanbanService.ToggleImagePrivacyAsync(img.Id, !img.IsPrivate);
+            if (success)
+            {
+                await LoadImagesAsync();
+            }
+        }
+    }
+
+    private async Task DeleteImageAsync(CardImage img)
+    {
+        if (Content.Id == Guid.Empty)
+        {
+            Content.Images.Remove(img);
+            if (img.IsFeatureImage && Content.Images.Any())
+            {
+                Content.Images.First().IsFeatureImage = true;
+            }
+            _cardImages = Content.Images;
+            Content.ImageUrl = _cardImages.FirstOrDefault(i => i.IsFeatureImage)?.ImageUrl;
+        }
+        else
+        {
+            var success = await KanbanService.DeleteCardImageAsync(img.Id);
+            if (success)
+            {
+                await LoadImagesAsync();
+            }
+        }
+    }
+
     private async Task OnFileUploadedAsync(FluentInputFileEventArgs e)
     {
         if (e.Stream is not null)
@@ -568,7 +753,30 @@
                 await e.Stream.CopyToAsync(ms);
                 var bytes = ms.ToArray();
                 var base64 = Convert.ToBase64String(bytes);
-                Content.ImageUrl = $"data:{e.ContentType};base64,{base64}";
+                var imageUrl = $"data:{e.ContentType};base64,{base64}";
+
+                if (Content.Id == Guid.Empty)
+                {
+                    var isFeature = !Content.Images.Any(img => img.IsFeatureImage);
+                    var newImg = new CardImage
+                    {
+                        ImageUrl = imageUrl,
+                        IsPrivate = false,
+                        IsFeatureImage = isFeature
+                    };
+                    Content.Images.Add(newImg);
+                    _cardImages = Content.Images;
+                    Content.ImageUrl = _cardImages.FirstOrDefault(i => i.IsFeatureImage)?.ImageUrl;
+                }
+                else
+                {
+                    var isFeature = !_cardImages.Any(img => img.IsFeatureImage);
+                    var newImg = await KanbanService.AddCardImageAsync(Content.Id, imageUrl, false, isFeature);
+                    if (newImg != null)
+                      {
+                        await LoadImagesAsync();
+                    }
+                }
             }
             catch (Exception ex)
             {

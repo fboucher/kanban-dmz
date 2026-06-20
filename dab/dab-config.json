@@ -144,6 +144,27 @@
           "actions": ["read", "create"]
         }
       ]
+    },
+    "CardImage": {
+      "source": "card_image",
+      "rest": true,
+      "permissions": [
+        {
+          "role": "anonymous",
+          "actions": [
+            {
+              "action": "read",
+              "policy": {
+                "database": "@item.isprivate eq false"
+              }
+            }
+          ]
+        },
+        {
+          "role": "authenticated",
+          "actions": ["*"]
+        }
+      ]
     }
   }
 }
