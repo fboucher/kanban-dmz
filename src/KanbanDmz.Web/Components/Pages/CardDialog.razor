@@ -308,20 +308,16 @@
                                             }
                                         </div>
                                         <div class="edit-gallery-controls">
-                                            <FluentStack Orientation="Orientation.Horizontal" Gap="4px" Style="width: 100%; justify-content: space-between;">
+                                            <FluentStack Orientation="Orientation.Horizontal" Gap="6px" HorizontalAlignment="HorizontalAlignment.Center" Style="width: 100%;">
                                                 <FluentButton Appearance="img.IsFeatureImage ? ButtonAppearance.Primary : ButtonAppearance.Outline"
                                                               OnClick="@(() => ToggleFeatureImageAsync(img))"
                                                               Title="@(img.IsFeatureImage ? "Remove Cover" : "Set as Cover")"
-                                                              IconStart="@(new Icons.Regular.Size16.Star())">
-                                                    Cover
-                                                </FluentButton>
+                                                              IconStart="@(img.IsFeatureImage ? new Icons.Filled.Size16.Star() : new Icons.Regular.Size16.Star())" />
                                                 
                                                 <FluentButton Appearance="img.IsPrivate ? ButtonAppearance.Primary : ButtonAppearance.Outline"
                                                               OnClick="@(() => ToggleImagePrivacyAsync(img))"
                                                               Title="@(img.IsPrivate ? "Make Public" : "Make Private")"
-                                                              IconStart="@(img.IsPrivate ? new Icons.Regular.Size16.LockClosed() : new Icons.Regular.Size16.LockOpen())">
-                                                    @(img.IsPrivate ? "Private" : "Public")
-                                                </FluentButton>
+                                                              IconStart="@(img.IsPrivate ? new Icons.Filled.Size16.LockClosed() : new Icons.Regular.Size16.LockOpen())" />
 
                                                 <FluentButton Appearance="ButtonAppearance.Outline"
                                                               OnClick="@(() => DeleteImageAsync(img))"
