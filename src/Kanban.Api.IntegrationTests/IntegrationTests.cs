@@ -236,4 +236,77 @@ public class IntegrationTests : IClassFixture<DabTestFixture>
         var checkCard2 = await seedClient.GetFromJsonAsync<DabResponse<Card>>($"Card?$filter=id eq {card.Id}");
         Assert.True(checkCard2!.Value[0].IsPublic);
     }
+
+    [Fact]
+    public async Task Comments_PrivacyPolicies_Enforced()
+    {
+        // Arrange
+        using var factory = CreateFactory();
+        
+        // We will seed a public card and a private card with comments
+        using var seedClient = new HttpClient { BaseAddress = new Uri(_fixture.DabBaseUrl) };
+        AuthenticateDirectClient(seedClient);
+
+        // 1. Post a board
+        var boardResponse = await seedClient.PostAsJsonAsync("Board", new { name = "Comments Test Board", ispublic = true });
+        var board = (await boardResponse.Content.ReadFromJsonAsync<DabResponse<Board>>())!.Value[0];
+
+        // 2. Post a column
+        var columnResponse = await seedClient.PostAsJsonAsync("Column", new { boardid = board.Id, name = "Comments Col", sortorder = 0 });
+        var column = (await columnResponse.Content.ReadFromJsonAsync<DabResponse<Column>>())!.Value[0];
+
+        // 3. Post a public card and a private card
+        var publicCardResponse = await seedClient.PostAsJsonAsync("Card", new {
+            boardid = board.Id,
+            columnid = column.Id,
+            title = "Public Card",
+            publicdescription = "Public card desc",
+            categoryid = 1,
+            ispublic = true
+        });
+        var publicCard = (await publicCardResponse.Content.ReadFromJsonAsync<DabResponse<Card>>())!.Value[0];
+
+        var privateCardResponse = await seedClient.PostAsJsonAsync("Card", new {
+            boardid = board.Id,
+            columnid = column.Id,
+            title = "Private Card",
+            publicdescription = "Private card desc",
+            categoryid = 1,
+            ispublic = false
+        });
+        var privateCard = (await privateCardResponse.Content.ReadFromJsonAsync<DabResponse<Card>>())!.Value[0];
+
+        // 4. Post comments to both cards
+        await seedClient.PostAsJsonAsync("CardComment", new {
+            cardid = publicCard.Id,
+            content = "Comment on public card",
+            createdby = "Alice"
+        });
+
+        await seedClient.PostAsJsonAsync("CardComment", new {
+            cardid = privateCard.Id,
+            content = "Comment on private card",
+            createdby = "Bob"
+        });
+
+        // 5. Query comments as anonymous user (direct client without auth headers)
+        using var anonymousClient = new HttpClient { BaseAddress = new Uri(_fixture.DabBaseUrl) };
+        
+        // Fetch comments for public card as anonymous
+        var publicResponse = await anonymousClient.GetAsync($"CardComment?$filter=cardid eq {publicCard.Id}");
+        var publicContent = await publicResponse.Content.ReadAsStringAsync();
+        if (!publicResponse.IsSuccessStatusCode)
+        {
+            throw new Exception($"DAB failed with status {publicResponse.StatusCode}. Error: {publicContent}");
+        }
+        var publicCommentsResponse = JsonSerializer.Deserialize<DabResponse<CardComment>>(publicContent, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+        Assert.NotNull(publicCommentsResponse);
+        Assert.Single(publicCommentsResponse.Value);
+        Assert.Equal("Comment on public card", publicCommentsResponse.Value[0].Content);
+
+        // Fetch comments for private card as anonymous (should be filtered out by policy, yielding empty)
+        var privateCommentsResponse = await anonymousClient.GetFromJsonAsync<DabResponse<CardComment>>($"CardComment?$filter=cardid eq {privateCard.Id}");
+        Assert.NotNull(privateCommentsResponse);
+        Assert.Empty(privateCommentsResponse.Value);
+    }
 }

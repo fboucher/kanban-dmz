@@ -123,6 +123,27 @@
           "actions": ["*"]
         }
       ]
+    },
+    "CardComment": {
+      "source": "card_comment",
+      "rest": true,
+      "permissions": [
+        {
+          "role": "anonymous",
+          "actions": [
+            {
+              "action": "read",
+              "policy": {
+                "database": "@item.ispublic eq true"
+              }
+            }
+          ]
+        },
+        {
+          "role": "authenticated",
+          "actions": ["read", "create"]
+        }
+      ]
     }
   }
 }
