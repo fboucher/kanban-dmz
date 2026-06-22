@@ -14,6 +14,9 @@ on:
         required: true
         default: '0.2'
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
 jobs:
   release:
     runs-on: ubuntu-latest
@@ -28,29 +31,32 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '10.0.x'
-          include-prerelease: true
-
       - name: Build and Publish Container Image
         run: |
-          # Get the tag name from input, release event, or ref_name
+          # Determine the tag from input, release event, or pushed tag ref
           INPUT_TAG="${{ github.event.inputs.tag_name }}"
           RELEASE_TAG="${{ github.event.release.tag_name }}"
           REF_TAG="${{ github.ref_name }}"
-          
           TAG_NAME="${INPUT_TAG:-${RELEASE_TAG:-${REF_TAG}}}"
-          # Strip 'v' prefix if it exists to get clean version number (e.g. 0.1.0)
+          # Strip 'v' prefix to get a clean semver (e.g. v0.1 → 0.1)
           VERSION_TAG="${TAG_NAME#v}"
-          
-          echo "Building and publishing for tag: ${TAG_NAME} (version tag: ${VERSION_TAG})"
-          
-          # Build and load into local Docker daemon
-          dotnet publish src/KanbanDmz.Web/KanbanDmz.Web.csproj -c Release -t:PublishContainer -p:ContainerImageTags="latest;${VERSION_TAG};${TAG_NAME}"
-          
-          # Push to Docker Hub
-          docker push fboucher/kanban-dmz-web:latest
+          TAG_NAME=$(echo "$TAG_NAME" | tr -d '\r')
+          VERSION_TAG=$(echo "$VERSION_TAG" | tr -d '\r')
+          echo "Building for tag: ${TAG_NAME} (version: ${VERSION_TAG})"
+
+          # Build via Dockerfile — no dotnet container SDK involved, no tag validation issues
+          docker build \
+            -f src/KanbanDmz.Web/Dockerfile \
+            -t fboucher/kanban-dmz-web:${VERSION_TAG} \
+            -t fboucher/kanban-dmz-web:latest \
+            .
+
+          # Push all tags
           docker push fboucher/kanban-dmz-web:${VERSION_TAG}
-          docker push fboucher/kanban-dmz-web:${TAG_NAME}
+          docker push fboucher/kanban-dmz-web:latest
+
+          # Also push the v-prefixed tag if the original tag had one (e.g. v0.1)
+          if [ "${TAG_NAME}" != "${VERSION_TAG}" ]; then
+            docker tag fboucher/kanban-dmz-web:${VERSION_TAG} fboucher/kanban-dmz-web:${TAG_NAME}
+            docker push fboucher/kanban-dmz-web:${TAG_NAME}
+          fi
