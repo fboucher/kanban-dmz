@@ -10,7 +10,8 @@ RUN dotnet restore src/KanbanDmz.Web/KanbanDmz.Web.csproj
 
 # Copy all source and publish
 COPY src/ src/
-RUN dotnet publish src/KanbanDmz.Web/KanbanDmz.Web.csproj \
+RUN dotnet restore src/KanbanDmz.Web/KanbanDmz.Web.csproj && \
+    dotnet publish src/KanbanDmz.Web/KanbanDmz.Web.csproj \
     -c Release \
     --no-restore \
     -o /app/publish

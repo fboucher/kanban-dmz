@@ -6,6 +6,7 @@ using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
+using Microsoft.AspNetCore.HttpOverrides;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -38,7 +39,8 @@ builder.Services.AddAuthentication(options =>
 {
     var authority = builder.Configuration["Keycloak:Authority"] ?? "http://localhost:8080";
     options.Authority = $"{authority}/auth/realms/kanban-dmz";
-    options.ClientId = "kanban-web";
+    options.ClientId = builder.Configuration["Keycloak:ClientId"] ?? "kanban-web";
+    options.ClientSecret = builder.Configuration["Keycloak:ClientSecret"];
     options.ResponseType = "code";
     options.SaveTokens = true;
     options.RequireHttpsMetadata = false;
@@ -52,6 +54,12 @@ builder.Services.AddAuthentication(options =>
 });
 
 var app = builder.Build();
+
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedHost,
+    ForwardLimit = null
+});
 
 if (!app.Environment.IsDevelopment())
 {
