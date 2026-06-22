@@ -65,3 +65,13 @@ To run unit tests and Testcontainers integration tests:
 dotnet test src
 ```
 Testcontainers will automatically spin up isolated Postgres and DAB Docker instances in the background during the test run (no manual setup required).
+
+---
+
+## Production Deployment Notes
+
+When deploying the stack to a production environment behind a reverse proxy (e.g., Traefik, Nginx, or IIS) with TLS/SSL encryption, keep the following in mind:
+
+1. **Forwarded Headers Middleware**: The web application in [Program.cs](file:///d:/dev/gh/kanban-dmz/src/KanbanDmz.Web/Program.cs) is configured to trust forwarded headers (`X-Forwarded-Proto` and `X-Forwarded-Host`) from the proxy by clearing the default local loopback restrictions. This ensures that the application generates correct `https` redirect URIs.
+2. **Reverse Proxy Configuration**: Ensure your reverse proxy is configured to pass `X-Forwarded-Proto` and `X-Forwarded-Host` headers to the web container. Reference commented-out Traefik labels are available in the template [docker-compose.yml](file:///d:/dev/gh/kanban-dmz/docker-compose.yml).
+3. **Keycloak Client Redirects**: Ensure that the external HTTPS callback URL (e.g., `https://kanban.your-domain.com/signin-oidc`) is explicitly registered under Keycloak's **Valid redirect URIs** configuration list for the client.

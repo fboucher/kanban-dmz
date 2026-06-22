@@ -59,6 +59,23 @@ services:
     depends_on:
       - dab
       - keycloak
+    # volumes:
+    #   # Persistent keys for cookie encryption/decryption across container restarts
+    #   - ./dataprotection-keys:/root/.aspnet/DataProtection-Keys
+    # labels:
+    #   - traefik.enable=true
+    #   - traefik.http.routers.kanban.rule=Host(`kanban.your-domain.com`)
+    #   - traefik.http.routers.kanban.entrypoints=web,websecure
+    #   - traefik.http.services.kanban.loadbalancer.server.port=8080
+    #   - traefik.http.routers.kanban.middlewares=kanban-headers
+    #   - traefik.http.middlewares.kanban-headers.headers.customrequestheaders.X-Forwarded-Proto=https
+    #   - traefik.http.middlewares.kanban-headers.headers.customrequestheaders.X-Forwarded-Host=kanban.your-domain.com
+    # networks:
+    #   - proxy
 
 volumes:
   postgres-data:
+
+# networks:
+#   proxy:
+#     external: true
